@@ -24,6 +24,8 @@ from blog_by_me_DRF import settings
 urlpatterns = [
     path('admin/', admin.site.urls),
     path('api-auth/', include('rest_framework.urls')),
+    path('ckeditor/', include('ckeditor_uploader.urls')),
+    path('api/v1/', include('blog.urls')),
 ]
 
 if settings.DEBUG:
