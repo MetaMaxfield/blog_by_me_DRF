@@ -1,7 +1,7 @@
 from rest_framework import serializers
 from taggit.serializers import TaggitSerializer, TagListSerializerField
 
-from blog.models import Post
+from blog.models import Post, Video
 
 
 class PostsSerializer(TaggitSerializer, serializers.ModelSerializer):
@@ -13,3 +13,15 @@ class PostsSerializer(TaggitSerializer, serializers.ModelSerializer):
     class Meta:
         model = Post
         exclude = ('created', 'updated', 'draft', 'video')
+
+
+class PostDetailSerializer(TaggitSerializer, serializers.ModelSerializer):
+    """Отдельный пост"""
+
+    category = serializers.SlugRelatedField(slug_field='name', read_only=True)
+    tags = TagListSerializerField()
+    ncomments = serializers.IntegerField()
+
+    class Meta:
+        model = Post
+        exclude = ('draft',)
