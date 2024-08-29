@@ -1,7 +1,7 @@
 from rest_framework import serializers
 from taggit.serializers import TaggitSerializer, TagListSerializerField
 
-from blog.models import Post, Video
+from blog.models import Comment, Post, Video
 
 
 class PostsSerializer(TaggitSerializer, serializers.ModelSerializer):
@@ -23,12 +23,21 @@ class VideoDetailSerializer(serializers.ModelSerializer):
         fields = ('title', 'file')
 
 
+class CommentsSerializer(serializers.ModelSerializer):
+    """Вывод комментариев к постам"""
+
+    class Meta:
+        model = Comment
+        exclude = ('email', 'active')
+
+
 class PostDetailSerializer(TaggitSerializer, serializers.ModelSerializer):
     """Отдельный пост"""
 
     category = serializers.SlugRelatedField(slug_field='name', read_only=True)
     video = VideoDetailSerializer(read_only=True)
     tags = TagListSerializerField()
+    comments = CommentsSerializer(read_only=True, many=True)
     ncomments = serializers.IntegerField()
 
     class Meta:
