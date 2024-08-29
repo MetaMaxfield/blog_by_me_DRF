@@ -4,7 +4,7 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from blog.models import Post
-from blog.serializers import PostDetailSerializer, PostsSerializer
+from blog.serializers import AddCommentSerializer, PostDetailSerializer, PostsSerializer
 
 
 class PostsView(APIView):
@@ -22,6 +22,16 @@ class PostsView(APIView):
         )
         serializer = PostsSerializer(object_list, many=True)
         return Response(serializer.data)
+
+
+class AddCommentView(APIView):
+    """Добавление комментария к посту"""
+
+    def post(self, request):
+        comment = AddCommentSerializer(data=request.data)
+        if comment.is_valid():
+            comment.save()
+        return Response(status=201)
 
 
 class PostDetailView(APIView):

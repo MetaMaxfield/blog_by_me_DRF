@@ -31,6 +31,14 @@ class CommentsSerializer(serializers.ModelSerializer):
         exclude = ('email', 'active')
 
 
+class AddCommentSerializer(serializers.ModelSerializer):
+    """Добавление комментария к посту"""
+
+    class Meta:
+        model = Comment
+        fields = '__all__'
+
+
 class PostDetailSerializer(TaggitSerializer, serializers.ModelSerializer):
     """Отдельный пост"""
 
