@@ -23,12 +23,31 @@ class VideoDetailSerializer(serializers.ModelSerializer):
         fields = ('title', 'file')
 
 
+class FilterCommentsListSerializer(serializers.ListSerializer):
+    """Фильтр комментариев, только parents"""
+
+    def to_representation(self, data):
+        data = data.filter(parent=None)
+        return super().to_representation(data)
+
+
+class RecursiveSerializer(serializers.Serializer):
+    """Вывод рекурсивно children"""
+
+    def to_representation(self, value):
+        serializer = self.parent.parent.__class__(value, context=self.context)
+        return serializer.data
+
+
 class CommentsSerializer(serializers.ModelSerializer):
     """Вывод комментариев к постам"""
 
+    children = RecursiveSerializer(many=True)
+
     class Meta:
+        list_serializer_class = FilterCommentsListSerializer
         model = Comment
-        exclude = ('email', 'active')
+        exclude = ('email', 'active', 'parent')
 
 
 class AddCommentSerializer(serializers.ModelSerializer):
