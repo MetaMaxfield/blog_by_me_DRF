@@ -91,7 +91,7 @@ class Comment(models.Model):
         on_delete=models.SET_NULL,
         blank=True,
         null=True,
-        related_name='parent_comments',
+        related_name='children',
     )
     name = models.CharField(verbose_name='Имя', max_length=80)
     email = models.EmailField()
