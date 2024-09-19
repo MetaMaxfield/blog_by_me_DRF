@@ -1,7 +1,7 @@
 from rest_framework import serializers
 from taggit.serializers import TaggitSerializer, TagListSerializerField
 
-from blog.models import Comment, Post, Video
+from blog.models import Category, Comment, Post, Video
 
 
 class PostsSerializer(TaggitSerializer, serializers.ModelSerializer):
@@ -70,3 +70,11 @@ class PostDetailSerializer(TaggitSerializer, serializers.ModelSerializer):
     class Meta:
         model = Post
         exclude = ('draft',)
+
+
+class CategoryListSerializer(serializers.ModelSerializer):
+    """Список категорий"""
+
+    class Meta:
+        model = Category
+        fields = '__all__'

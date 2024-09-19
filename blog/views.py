@@ -3,8 +3,8 @@ from rest_framework.generics import get_object_or_404
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
-from blog.models import Post
-from blog.serializers import AddCommentSerializer, PostDetailSerializer, PostsSerializer
+from blog.models import Category, Post
+from blog.serializers import AddCommentSerializer, CategoryListSerializer, PostDetailSerializer, PostsSerializer
 
 
 class PostsView(APIView):
@@ -43,3 +43,27 @@ class PostDetailView(APIView):
         )
         serializer = PostDetailSerializer(post)
         return Response(serializer.data)
+
+
+class CategoryListView(APIView):
+    """Вывод списка категорий и постов к ним"""
+
+    def get(self, request):
+        category_list = Category.objects.all()
+        category_serializer = CategoryListSerializer(category_list, many=True)
+        post_list = (
+            Post.objects.filter(draft=False)
+            .select_related('category')
+            .prefetch_related(
+                'tagged_items__tag',
+            )
+            .defer('video', 'created', 'updated', 'draft')
+            .annotate(ncomments=Count('comments'))
+        )
+        posts_serializer = PostsSerializer(post_list, many=True)
+        return Response(
+            {
+                'category_list': category_serializer.data,
+                'post_list': posts_serializer.data,
+            }
+        )
