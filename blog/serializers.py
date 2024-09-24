@@ -89,3 +89,14 @@ class CategoryListSerializer(serializers.ModelSerializer):
     class Meta:
         model = Category
         fields = '__all__'
+
+
+class VideoListSerializer(serializers.ModelSerializer):
+    """Список видеозаписей"""
+
+    post_video = PostDetailSerializer(read_only=True, fields=('id', 'url', 'category'))
+    ncomments = serializers.IntegerField()
+
+    class Meta:
+        model = Video
+        fields = '__all__'

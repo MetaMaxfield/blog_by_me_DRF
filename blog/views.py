@@ -1,10 +1,16 @@
-from django.db.models import Count
+from django.db.models import Count, Prefetch
 from rest_framework.generics import get_object_or_404
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
-from blog.models import Category, Post
-from blog.serializers import AddCommentSerializer, CategoryListSerializer, PostDetailSerializer, PostsSerializer
+from blog.models import Category, Post, Video
+from blog.serializers import (
+    AddCommentSerializer,
+    CategoryListSerializer,
+    PostDetailSerializer,
+    PostsSerializer,
+    VideoListSerializer,
+)
 
 
 class PostsView(APIView):
@@ -67,3 +73,22 @@ class CategoryListView(APIView):
                 'post_list': posts_serializer.data,
             }
         )
+
+
+class VideoListView(APIView):
+    """Вывод всех видеозаписей"""
+
+    def get(self, request):
+        video_list = (
+            Video.objects.filter(post_video__draft=False)
+            .select_related('post_video')
+            .prefetch_related(
+                Prefetch('post_video__category', Category.objects.only('id', 'name')),
+            )
+            .annotate(
+                ncomments=Count('post_video__comments'),
+            )
+            .order_by('-create_at')
+        )
+        videos_serializer = VideoListSerializer(video_list, many=True)
+        return Response(videos_serializer.data)

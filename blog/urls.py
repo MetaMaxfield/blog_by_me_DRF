@@ -7,4 +7,5 @@ urlpatterns = [
     path('posts/<slug:slug>/', views.PostDetailView.as_view()),
     path('add-comment/', views.AddCommentView.as_view()),
     path('categories/', views.CategoryListView.as_view()),
+    path('videos/', views.VideoListView.as_view()),
 ]
