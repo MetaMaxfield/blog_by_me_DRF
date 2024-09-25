@@ -9,6 +9,7 @@ class PostsSerializer(TaggitSerializer, serializers.ModelSerializer):
 
     category = serializers.SlugRelatedField(slug_field='name', read_only=True)
     tags = TagListSerializerField()
+    ncomments = serializers.IntegerField()
 
     class Meta:
         model = Post
