@@ -1,4 +1,6 @@
+from django.contrib.postgres.search import SearchQuery, SearchRank, SearchVector
 from django.db.models import Count, Prefetch
+from rest_framework import status
 from rest_framework.generics import get_object_or_404
 from rest_framework.response import Response
 from rest_framework.views import APIView
@@ -28,6 +30,39 @@ class PostsView(APIView):
         )
         serializer = PostsSerializer(object_list, many=True)
         return Response(serializer.data)
+
+
+class SearchPostView(APIView):
+    """Вывод результатов поиска постов блога"""
+
+    def get(self, request):
+        q = request.query_params.get('q')
+        if not q:
+            return Response(
+                {'detail': 'Пожалуйста, введите текст для поиска постов.'}, status=status.HTTP_400_BAD_REQUEST
+            )
+        post_list = (
+            Post.objects.filter(draft=False)
+            .select_related('category')
+            .prefetch_related(
+                'tagged_items__tag',
+            )
+            .defer('video', 'created', 'updated', 'draft')
+            .annotate(ncomments=Count('comments'))
+        )
+        search_vector = SearchVector('title', 'body')
+        search_query = SearchQuery(q)
+        post_list = (
+            post_list.annotate(search=search_vector, rank=SearchRank(search_vector, search_query))
+            .filter(search=search_query)
+            .order_by('-rank')
+        )
+        serializer = PostsSerializer(post_list, many=True)
+        return (
+            Response({'detail': 'Поиск выполнен успешно', 'results': serializer.data})
+            if post_list
+            else Response({'detail': 'Посты не найдены', 'results': []})
+        )
 
 
 class AddCommentView(APIView):
