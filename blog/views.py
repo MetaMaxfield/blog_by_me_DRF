@@ -1,3 +1,6 @@
+import datetime
+import re
+
 from django.contrib.postgres.search import SearchQuery, SearchRank, SearchVector
 from django.db.models import Count, Prefetch
 from rest_framework import status
@@ -63,6 +66,27 @@ class SearchPostView(APIView):
             if post_list
             else Response({'detail': 'Посты не найдены', 'results': []})
         )
+
+
+class FilterDatePostsView(APIView):
+    """Вывод постов с фильтрацией по дате"""
+
+    def get(self, request, date_post):
+        if not re.match(r'^\d{4}-\d{2}-\d{2}$', date_post):
+            return Response({'detail': 'Задан неправильный формат даты'}, status=status.HTTP_400_BAD_REQUEST)
+        date_post = datetime.datetime.strptime(date_post, '%Y-%m-%d').date()
+        post_list = (
+            Post.objects.filter(draft=False)
+            .select_related('category')
+            .prefetch_related(
+                'tagged_items__tag',
+            )
+            .defer('video', 'created', 'updated', 'draft')
+            .annotate(ncomments=Count('comments'))
+        )
+        post_list = post_list.filter(created__date=date_post)
+        serializer = PostsSerializer(post_list, many=True)
+        return Response(serializer.data)
 
 
 class AddCommentView(APIView):
