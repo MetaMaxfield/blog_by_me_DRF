@@ -60,12 +60,10 @@ class SearchPostView(APIView):
             .filter(search=search_query)
             .order_by('-rank')
         )
+        if not post_list.exists():
+            return Response({'detail': f'Посты по запросу "{q}" не найдены'}, status=status.HTTP_204_NO_CONTENT)
         serializer = PostsSerializer(post_list, many=True)
-        return (
-            Response({'detail': 'Поиск выполнен успешно', 'results': serializer.data})
-            if post_list
-            else Response({'detail': 'Посты не найдены', 'results': []})
-        )
+        return Response(serializer.data)
 
 
 class FilterDatePostsView(APIView):
@@ -85,6 +83,8 @@ class FilterDatePostsView(APIView):
             .annotate(ncomments=Count('comments'))
         )
         post_list = post_list.filter(created__date=date_post)
+        if not post_list.exists():
+            return Response({'detail': f'Посты с датой {date_post} не найдены'}, status=status.HTTP_204_NO_CONTENT)
         serializer = PostsSerializer(post_list, many=True)
         return Response(serializer.data)
 
