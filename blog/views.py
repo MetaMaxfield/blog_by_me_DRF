@@ -89,6 +89,26 @@ class FilterDatePostsView(APIView):
         return Response(serializer.data)
 
 
+class FilterTagPostsView(APIView):
+    """Вывод постов с фильтрацией по тегу"""
+
+    def get(self, request, tag_slug):
+        post_list = (
+            Post.objects.filter(draft=False)
+            .select_related('category')
+            .prefetch_related(
+                'tagged_items__tag',
+            )
+            .defer('video', 'created', 'updated', 'draft')
+            .annotate(ncomments=Count('comments'))
+        )
+        post_list = post_list.filter(tags__slug=tag_slug)
+        if not post_list.exists():
+            return Response({'detail': 'Посты с заданным тегом не найдены'}, status=status.HTTP_204_NO_CONTENT)
+        serializer = PostsSerializer(post_list, many=True)
+        return Response(serializer.data)
+
+
 class AddCommentView(APIView):
     """Добавление комментария к посту"""
 
