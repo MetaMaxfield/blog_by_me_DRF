@@ -1,7 +1,7 @@
 from rest_framework import serializers
 from taggit.serializers import TaggitSerializer, TagListSerializerField
 
-from blog.models import Category, Comment, Post, Video
+from blog.models import Category, Comment, Post, Rating, Video
 
 
 class PostsSerializer(TaggitSerializer, serializers.ModelSerializer):
@@ -101,3 +101,23 @@ class VideoListSerializer(serializers.ModelSerializer):
     class Meta:
         model = Video
         fields = '__all__'
+
+
+class AddRatingSerializer(serializers.ModelSerializer):
+    """Добавление рейтинга к посту"""
+
+    class Meta:
+        model = Rating
+        fields = ('mark', 'post')
+
+    def create(self, validated_data):
+        return Rating.objects.create(
+            ip=validated_data['ip'],
+            mark=validated_data['mark'],
+            post=validated_data['post'],
+        )
+
+    def update(self, instance, validated_data):
+        instance.mark = validated_data.get('mark', instance.mark)
+        instance.save()
+        return instance

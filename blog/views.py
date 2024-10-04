@@ -8,14 +8,25 @@ from rest_framework.generics import get_object_or_404
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
-from blog.models import Category, Post, Video
+from blog.models import Category, Post, Rating, Video
 from blog.serializers import (
     AddCommentSerializer,
+    AddRatingSerializer,
     CategoryListSerializer,
     PostDetailSerializer,
     PostsSerializer,
     VideoListSerializer,
 )
+
+
+def get_client_ip(request):
+    """Получение IP пользоваетля"""
+    x_forwarded_for = request.META.get('HTTP_X_FORWARDED_FOR')
+    if x_forwarded_for:
+        ip = x_forwarded_for.split(',')[0]
+    else:
+        ip = request.META.get('REMOTE_ADDR')
+    return ip
 
 
 class PostsView(APIView):
@@ -171,3 +182,25 @@ class VideoListView(APIView):
         )
         videos_serializer = VideoListSerializer(video_list, many=True)
         return Response(videos_serializer.data)
+
+
+class AddRatingView(APIView):
+    """Добавление рейтинга к посту"""
+
+    def put(self, request):
+        ip = get_client_ip(request)
+
+        try:
+            rating = AddRatingSerializer(
+                instance=Rating.objects.get(ip=ip, post=request.data['post']), data=request.data
+            )
+            status_code = status.HTTP_204_NO_CONTENT
+        except Rating.DoesNotExist:
+            rating = AddRatingSerializer(data=request.data)
+            status_code = status.HTTP_201_CREATED
+
+        if rating.is_valid():
+            rating.save(ip=ip)
+            return Response(status=status_code)
+
+        return Response(rating.errors, status=status.HTTP_400_BAD_REQUEST)
