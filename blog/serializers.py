@@ -67,6 +67,7 @@ class PostDetailSerializer(TaggitSerializer, serializers.ModelSerializer):
     tags = TagListSerializerField()
     comments = CommentsSerializer(read_only=True, many=True)
     ncomments = serializers.IntegerField()
+    user_rating = serializers.IntegerField()
 
     def __init__(self, *args, **kwargs):
         fields = kwargs.pop('fields', None)

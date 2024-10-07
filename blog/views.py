@@ -2,7 +2,7 @@ import datetime
 import re
 
 from django.contrib.postgres.search import SearchQuery, SearchRank, SearchVector
-from django.db.models import Count, Prefetch
+from django.db.models import Count, OuterRef, Prefetch, Subquery
 from rest_framework import status
 from rest_framework.generics import get_object_or_404
 from rest_framework.response import Response
@@ -135,8 +135,15 @@ class PostDetailView(APIView):
     """Вывод отдельного поста"""
 
     def get(self, request, slug):
+        ip = get_client_ip(request)
         post = get_object_or_404(
-            Post.objects.filter(draft=False).defer('draft').annotate(ncomments=Count('comments')), url=slug
+            Post.objects.filter(draft=False)
+            .defer('draft')
+            .annotate(
+                ncomments=Count('comments'),
+                user_rating=Subquery(Rating.objects.filter(ip=ip, post=OuterRef('pk')).values('mark__value')),
+            ),
+            url=slug,
         )
         serializer = PostDetailSerializer(post)
         return Response(serializer.data)
