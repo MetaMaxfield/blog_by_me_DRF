@@ -2,7 +2,8 @@ import datetime
 import re
 
 from django.contrib.postgres.search import SearchQuery, SearchRank, SearchVector
-from django.db.models import Count, OuterRef, Prefetch, Subquery
+from django.db.models import Count, OuterRef, Prefetch, Subquery, Sum
+from django.db.models.functions import Coalesce
 from rest_framework import status
 from rest_framework.generics import get_object_or_404
 from rest_framework.response import Response
@@ -212,3 +213,17 @@ class AddRatingView(APIView):
             return Response(status=status_code)
 
         return Response(rating.errors, status=status.HTTP_400_BAD_REQUEST)
+
+
+class TopPostsView(APIView):
+    """Вывод трёх постов с наивысшим рейтингом"""
+
+    def get(self, request):
+        top_posts = (
+            Post.objects.filter(draft=False)
+            .only('title', 'body', 'url')
+            .alias(total_likes=Coalesce(Sum('rating_post__mark__value'), 0))
+            .order_by('-total_likes')[:3]
+        )
+        serializer = PostsSerializer(top_posts, many=True, fields=('title', 'body', 'url'))
+        return Response(serializer.data)
