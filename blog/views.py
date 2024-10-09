@@ -227,3 +227,12 @@ class TopPostsView(APIView):
         )
         serializer = PostsSerializer(top_posts, many=True, fields=('title', 'body', 'url'))
         return Response(serializer.data)
+
+
+class LastPostsView(APIView):
+    """Вывод трех последних опубликованных постов"""
+
+    def get(self, request):
+        last_posts = Post.objects.filter(draft=False).only('image', 'title', 'body', 'url')[:3]
+        serializer = PostsSerializer(last_posts, many=True, fields=('image', 'title', 'body', 'url'))
+        return Response(serializer.data)
