@@ -42,6 +42,7 @@ class PostsView(APIView):
             )
             .defer('video', 'created', 'updated', 'draft')
             .annotate(ncomments=Count('comments'))
+            .order_by('-publish')
         )
         serializer = PostsSerializer(object_list, many=True)
         return Response(serializer.data)
@@ -93,6 +94,7 @@ class FilterDatePostsView(APIView):
             )
             .defer('video', 'created', 'updated', 'draft')
             .annotate(ncomments=Count('comments'))
+            .order_by('-publish')
         )
         post_list = post_list.filter(created__date=date_post)
         if not post_list.exists():
@@ -113,6 +115,7 @@ class FilterTagPostsView(APIView):
             )
             .defer('video', 'created', 'updated', 'draft')
             .annotate(ncomments=Count('comments'))
+            .order_by('-publish')
         )
         post_list = post_list.filter(tags__slug=tag_slug)
         if not post_list.exists():
@@ -164,6 +167,7 @@ class CategoryListView(APIView):
             )
             .defer('video', 'created', 'updated', 'draft')
             .annotate(ncomments=Count('comments'))
+            .order_by('-publish')
         )
         posts_serializer = PostsSerializer(post_list, many=True)
         return Response(
@@ -233,6 +237,6 @@ class LastPostsView(APIView):
     """Вывод трех последних опубликованных постов"""
 
     def get(self, request):
-        last_posts = Post.objects.filter(draft=False).only('image', 'title', 'body', 'url')[:3]
+        last_posts = Post.objects.filter(draft=False).only('image', 'title', 'body', 'url').order_by('-publish')[:3]
         serializer = PostsSerializer(last_posts, many=True, fields=('image', 'title', 'body', 'url'))
         return Response(serializer.data)
