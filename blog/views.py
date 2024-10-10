@@ -240,3 +240,13 @@ class LastPostsView(APIView):
         last_posts = Post.objects.filter(draft=False).only('image', 'title', 'body', 'url').order_by('-publish')[:3]
         serializer = PostsSerializer(last_posts, many=True, fields=('image', 'title', 'body', 'url'))
         return Response(serializer.data)
+
+
+class DaysInCalendarView(APIView):
+    """Вывод дат публикации постов для заданного месяца"""
+
+    def get(self, request, year, month):
+        days_with_post = Post.objects.filter(draft=False, publish__year=year, publish__month=month).dates(
+            'publish', 'day'
+        )
+        return Response(days_with_post)

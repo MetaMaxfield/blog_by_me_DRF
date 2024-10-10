@@ -10,6 +10,7 @@ urlpatterns = [
     path('posts/<slug:slug>/', views.PostDetailView.as_view()),
     path('top-posts/', views.TopPostsView.as_view()),
     path('last-posts/', views.LastPostsView.as_view()),
+    path('calendar/<int:year>/<int:month>/', views.DaysInCalendarView.as_view()),
     path('add-comment/', views.AddCommentView.as_view()),
     path('add-rating/', views.AddRatingView.as_view()),
     path('categories/', views.CategoryListView.as_view()),
