@@ -2,12 +2,13 @@ import datetime
 import re
 
 from django.contrib.postgres.search import SearchQuery, SearchRank, SearchVector
-from django.db.models import Count, OuterRef, Prefetch, Subquery, Sum
+from django.db.models import Count, OuterRef, Prefetch, Q, Subquery, Sum
 from django.db.models.functions import Coalesce
 from rest_framework import status
 from rest_framework.generics import get_object_or_404
 from rest_framework.response import Response
 from rest_framework.views import APIView
+from taggit.models import Tag
 
 from blog.models import Category, Post, Rating, Video
 from blog.serializers import (
@@ -16,6 +17,7 @@ from blog.serializers import (
     CategoryListSerializer,
     PostDetailSerializer,
     PostsSerializer,
+    TopTagsSerializer,
     VideoListSerializer,
 )
 
@@ -250,3 +252,12 @@ class DaysInCalendarView(APIView):
             'publish', 'day'
         )
         return Response(days_with_post)
+
+
+class TopTagsView(APIView):
+    """Вывод десяти самых популярных тегов и количества постов к ним"""
+
+    def get(self, request):
+        tags = Tag.objects.annotate(npost=Count('post_tags', filter=Q(post_tags__draft=False))).order_by('-npost')[:10]
+        serializer = TopTagsSerializer(tags, many=True)
+        return Response(serializer.data)

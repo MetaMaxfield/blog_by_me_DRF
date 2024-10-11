@@ -1,4 +1,5 @@
 from rest_framework import serializers
+from taggit.models import Tag
 from taggit.serializers import TaggitSerializer, TagListSerializerField
 
 from blog.models import Category, Comment, Post, Rating, Video
@@ -133,3 +134,11 @@ class AddRatingSerializer(serializers.ModelSerializer):
         instance.mark = validated_data.get('mark', instance.mark)
         instance.save()
         return instance
+
+
+class TopTagsSerializer(serializers.ModelSerializer):
+    npost = serializers.IntegerField()
+
+    class Meta:
+        model = Tag
+        fields = '__all__'
