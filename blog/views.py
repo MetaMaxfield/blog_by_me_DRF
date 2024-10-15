@@ -6,6 +6,7 @@ from django.db.models import Count, OuterRef, Prefetch, Q, Subquery, Sum
 from django.db.models.functions import Coalesce
 from rest_framework import status
 from rest_framework.generics import get_object_or_404
+from rest_framework.pagination import PageNumberPagination
 from rest_framework.response import Response
 from rest_framework.views import APIView
 from taggit.models import Tag
@@ -32,6 +33,14 @@ def get_client_ip(request):
     return ip
 
 
+class PageNumberPaginationForPosts(PageNumberPagination):
+    """Пагинация для списка постов"""
+
+    page_size = 3
+    page_size_query_param = 'page_size'
+    max_page_size = 50
+
+
 class PostsView(APIView):
     """Вывод постов блога"""
 
@@ -46,8 +55,10 @@ class PostsView(APIView):
             .annotate(ncomments=Count('comments'))
             .order_by('-publish')
         )
-        serializer = PostsSerializer(object_list, many=True)
-        return Response(serializer.data)
+        paginator = PageNumberPaginationForPosts()
+        paginated_object_list = paginator.paginate_queryset(object_list, request)
+        serializer = PostsSerializer(paginated_object_list, many=True)
+        return paginator.get_paginated_response(serializer.data)
 
 
 class SearchPostView(APIView):
