@@ -88,8 +88,10 @@ class SearchPostView(APIView):
         )
         if not post_list.exists():
             return Response({'detail': f'Посты по запросу "{q}" не найдены'}, status=status.HTTP_204_NO_CONTENT)
-        serializer = PostsSerializer(post_list, many=True)
-        return Response(serializer.data)
+        paginator = PageNumberPaginationForPosts()
+        paginated_post_list = paginator.paginate_queryset(post_list, request)
+        serializer = PostsSerializer(paginated_post_list, many=True)
+        return paginator.get_paginated_response(serializer.data)
 
 
 class FilterDatePostsView(APIView):
