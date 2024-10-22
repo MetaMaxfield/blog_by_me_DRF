@@ -34,7 +34,7 @@ def get_client_ip(request):
 
 
 class PageNumberPaginationForPosts(PageNumberPagination):
-    """Пагинация для списка постов"""
+    """Пагинация списка постов для постраничного отображения"""
 
     page_size = 3
     page_size_query_param = 'page_size'
