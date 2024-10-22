@@ -6,7 +6,7 @@ from django.db.models import Count, OuterRef, Prefetch, Q, Subquery, Sum
 from django.db.models.functions import Coalesce
 from rest_framework import status
 from rest_framework.generics import get_object_or_404
-from rest_framework.pagination import PageNumberPagination
+from rest_framework.pagination import CursorPagination, PageNumberPagination
 from rest_framework.response import Response
 from rest_framework.views import APIView
 from taggit.models import Tag
@@ -39,6 +39,13 @@ class PageNumberPaginationForPosts(PageNumberPagination):
     page_size = 3
     page_size_query_param = 'page_size'
     max_page_size = 50
+
+
+class CursorPaginationForPostsInCategoryList(CursorPagination):
+    """Пагинация для списка постов в разделе "Категории" с помощью курсора"""
+
+    page_size = 10
+    ordering = '-publish'
 
 
 class PostsView(APIView):
@@ -188,8 +195,10 @@ class CategoryListView(APIView):
             .annotate(ncomments=Count('comments'))
             .order_by('-publish')
         )
-        posts_serializer = PostsSerializer(post_list, many=True)
-        return Response(
+        paginator = CursorPaginationForPostsInCategoryList()
+        paginated_post_list = paginator.paginate_queryset(post_list, request)
+        posts_serializer = PostsSerializer(paginated_post_list, many=True)
+        return paginator.get_paginated_response(
             {
                 'category_list': category_serializer.data,
                 'post_list': posts_serializer.data,
