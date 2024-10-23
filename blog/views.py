@@ -6,7 +6,7 @@ from django.db.models import Count, OuterRef, Prefetch, Q, Subquery, Sum
 from django.db.models.functions import Coalesce
 from rest_framework import status
 from rest_framework.generics import get_object_or_404
-from rest_framework.pagination import CursorPagination, PageNumberPagination
+from rest_framework.pagination import CursorPagination, LimitOffsetPagination, PageNumberPagination
 from rest_framework.response import Response
 from rest_framework.views import APIView
 from taggit.models import Tag
@@ -46,6 +46,13 @@ class CursorPaginationForPostsInCategoryList(CursorPagination):
 
     page_size = 10
     ordering = '-publish'
+
+
+class LimitOffsetPaginationForVideoList(LimitOffsetPagination):
+    """Пагинация для списка видеозаписей на основе смещения и лимита"""
+
+    default_limit = 3
+    max_limit = 50
 
 
 class PostsView(APIView):
@@ -221,8 +228,10 @@ class VideoListView(APIView):
             )
             .order_by('-create_at')
         )
-        videos_serializer = VideoListSerializer(video_list, many=True)
-        return Response(videos_serializer.data)
+        paginator = LimitOffsetPaginationForVideoList()
+        paginated_video_list = paginator.paginate_queryset(video_list, request)
+        videos_serializer = VideoListSerializer(paginated_video_list, many=True)
+        return paginator.get_paginated_response(videos_serializer.data)
 
 
 class AddRatingView(APIView):
