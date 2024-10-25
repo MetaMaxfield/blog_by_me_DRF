@@ -78,7 +78,10 @@ class Post(models.Model):
     class Meta:
         verbose_name = 'Пост'
         verbose_name_plural = 'Посты'
-        ordering = ('-publish',)
+        indexes = [
+            models.Index(fields=('-publish', '-id'), name='publish_id_idx'),
+        ]
+        ordering = ('-publish', '-id')
 
 
 class Comment(models.Model):
