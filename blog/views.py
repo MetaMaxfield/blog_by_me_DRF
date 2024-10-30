@@ -46,7 +46,7 @@ class CursorPaginationForPostsInCategoryList(CursorPagination):
     """Пагинация для списка постов в разделе "Категории" с помощью курсора"""
 
     page_size = 10
-    ordering = '-publish'
+    ordering = ('-publish', '-id')
 
 
 class PostsView(APIView):
@@ -61,7 +61,7 @@ class PostsView(APIView):
             )
             .defer('video', 'created', 'updated', 'draft')
             .annotate(ncomments=Count('comments'))
-            .order_by('-publish')
+            .order_by('-publish', '-id')
         )
         paginator = PageNumberPaginationForPosts()
         paginated_object_list = paginator.paginate_queryset(object_list, request)
@@ -117,7 +117,7 @@ class FilterDatePostsView(APIView):
             )
             .defer('video', 'created', 'updated', 'draft')
             .annotate(ncomments=Count('comments'))
-            .order_by('-publish')
+            .order_by('-publish', '-id')
         )
         post_list = post_list.filter(created__date=date_post)
         if not post_list.exists():
@@ -140,7 +140,7 @@ class FilterTagPostsView(APIView):
             )
             .defer('video', 'created', 'updated', 'draft')
             .annotate(ncomments=Count('comments'))
-            .order_by('-publish')
+            .order_by('-publish', '-id')
         )
         post_list = post_list.filter(tags__slug=tag_slug)
         if not post_list.exists():
@@ -194,7 +194,7 @@ class CategoryListView(APIView):
             )
             .defer('video', 'created', 'updated', 'draft')
             .annotate(ncomments=Count('comments'))
-            .order_by('-publish')
+            .order_by('-publish', '-id')
         )
         paginator = CursorPaginationForPostsInCategoryList()
         paginated_post_list = paginator.paginate_queryset(post_list, request)
@@ -269,7 +269,7 @@ class LastPostsView(APIView):
         last_posts = (
             Post.objects.filter(draft=False, publish__lte=timezone.now())
             .only('image', 'title', 'body', 'url')
-            .order_by('-publish')[:3]
+            .order_by('-publish', '-id')[:3]
         )
         serializer = PostsSerializer(last_posts, many=True, fields=('image', 'title', 'body', 'url'))
         return Response(serializer.data)
