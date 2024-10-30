@@ -61,7 +61,15 @@ class Post(models.Model):
         blank=True,
     )
     image = models.ImageField(verbose_name='Изображение', upload_to='posts/')
-    publish = models.DateTimeField(default=timezone.now)
+    publish = models.DateTimeField(
+        default=timezone.now,
+        help_text='Укажите дату и время, когда пост должен быть опубликован. '
+        'Оставьте текущую дату и время для немедленной публикации, '
+        'либо выберите будущую дату для отложенного поста. '
+        'Обратите внимание: изменить время публикации можно будет только '
+        'до наступления ранее указанного времени.',
+        verbose_name='Время публикации',
+    )
     created = models.DateTimeField(auto_now_add=True)
     updated = models.DateTimeField(auto_now=True)
     draft = models.BooleanField(default=False, verbose_name='Черновик')
