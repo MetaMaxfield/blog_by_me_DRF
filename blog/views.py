@@ -4,6 +4,7 @@ import re
 from django.contrib.postgres.search import SearchQuery, SearchRank, SearchVector
 from django.db.models import Count, OuterRef, Prefetch, Q, Subquery, Sum
 from django.db.models.functions import Coalesce
+from django.utils import timezone
 from rest_framework import status
 from rest_framework.generics import get_object_or_404
 from rest_framework.pagination import CursorPagination, LimitOffsetPagination, PageNumberPagination
@@ -45,7 +46,7 @@ class CursorPaginationForPostsInCategoryList(CursorPagination):
     """Пагинация для списка постов в разделе "Категории" с помощью курсора"""
 
     page_size = 10
-    ordering = '-publish'
+    ordering = ('-publish', '-id')
 
 
 class LimitOffsetPaginationForVideoList(LimitOffsetPagination):
@@ -60,14 +61,14 @@ class PostsView(APIView):
 
     def get(self, request):
         object_list = (
-            Post.objects.filter(draft=False)
+            Post.objects.filter(draft=False, publish__lte=timezone.now())
             .select_related('category')
             .prefetch_related(
                 'tagged_items__tag',
             )
             .defer('video', 'created', 'updated', 'draft')
             .annotate(ncomments=Count('comments'))
-            .order_by('-publish')
+            .order_by('-publish', '-id')
         )
         paginator = PageNumberPaginationForPosts()
         paginated_object_list = paginator.paginate_queryset(object_list, request)
@@ -85,7 +86,7 @@ class SearchPostView(APIView):
                 {'detail': 'Пожалуйста, введите текст для поиска постов.'}, status=status.HTTP_400_BAD_REQUEST
             )
         post_list = (
-            Post.objects.filter(draft=False)
+            Post.objects.filter(draft=False, publish__lte=timezone.now())
             .select_related('category')
             .prefetch_related(
                 'tagged_items__tag',
@@ -116,14 +117,14 @@ class FilterDatePostsView(APIView):
             return Response({'detail': 'Задан неправильный формат даты'}, status=status.HTTP_400_BAD_REQUEST)
         date_post = datetime.datetime.strptime(date_post, '%Y-%m-%d').date()
         post_list = (
-            Post.objects.filter(draft=False)
+            Post.objects.filter(draft=False, publish__lte=timezone.now())
             .select_related('category')
             .prefetch_related(
                 'tagged_items__tag',
             )
             .defer('video', 'created', 'updated', 'draft')
             .annotate(ncomments=Count('comments'))
-            .order_by('-publish')
+            .order_by('-publish', '-id')
         )
         post_list = post_list.filter(created__date=date_post)
         if not post_list.exists():
@@ -139,14 +140,14 @@ class FilterTagPostsView(APIView):
 
     def get(self, request, tag_slug):
         post_list = (
-            Post.objects.filter(draft=False)
+            Post.objects.filter(draft=False, publish__lte=timezone.now())
             .select_related('category')
             .prefetch_related(
                 'tagged_items__tag',
             )
             .defer('video', 'created', 'updated', 'draft')
             .annotate(ncomments=Count('comments'))
-            .order_by('-publish')
+            .order_by('-publish', '-id')
         )
         post_list = post_list.filter(tags__slug=tag_slug)
         if not post_list.exists():
@@ -174,7 +175,7 @@ class PostDetailView(APIView):
     def get(self, request, slug):
         ip = get_client_ip(request)
         post = get_object_or_404(
-            Post.objects.filter(draft=False)
+            Post.objects.filter(draft=False, publish__lte=timezone.now())
             .defer('draft')
             .annotate(
                 ncomments=Count('comments'),
@@ -193,14 +194,14 @@ class CategoryListView(APIView):
         category_list = Category.objects.all()
         category_serializer = CategoryListSerializer(category_list, many=True)
         post_list = (
-            Post.objects.filter(draft=False)
+            Post.objects.filter(draft=False, publish__lte=timezone.now())
             .select_related('category')
             .prefetch_related(
                 'tagged_items__tag',
             )
             .defer('video', 'created', 'updated', 'draft')
             .annotate(ncomments=Count('comments'))
-            .order_by('-publish')
+            .order_by('-publish', '-id')
         )
         paginator = CursorPaginationForPostsInCategoryList()
         paginated_post_list = paginator.paginate_queryset(post_list, request)
@@ -218,7 +219,7 @@ class VideoListView(APIView):
 
     def get(self, request):
         video_list = (
-            Video.objects.filter(post_video__draft=False)
+            Video.objects.filter(post_video__draft=False, post_video__publish__lte=timezone.now())
             .select_related('post_video')
             .prefetch_related(
                 Prefetch('post_video__category', Category.objects.only('id', 'name')),
@@ -261,7 +262,7 @@ class TopPostsView(APIView):
 
     def get(self, request):
         top_posts = (
-            Post.objects.filter(draft=False)
+            Post.objects.filter(draft=False, publish__lte=timezone.now())
             .only('title', 'body', 'url')
             .alias(total_likes=Coalesce(Sum('rating_post__mark__value'), 0))
             .order_by('-total_likes')[:3]
@@ -274,7 +275,11 @@ class LastPostsView(APIView):
     """Вывод трех последних опубликованных постов"""
 
     def get(self, request):
-        last_posts = Post.objects.filter(draft=False).only('image', 'title', 'body', 'url').order_by('-publish')[:3]
+        last_posts = (
+            Post.objects.filter(draft=False, publish__lte=timezone.now())
+            .only('image', 'title', 'body', 'url')
+            .order_by('-publish', '-id')[:3]
+        )
         serializer = PostsSerializer(last_posts, many=True, fields=('image', 'title', 'body', 'url'))
         return Response(serializer.data)
 
@@ -283,9 +288,9 @@ class DaysInCalendarView(APIView):
     """Вывод дат публикации постов для заданного месяца"""
 
     def get(self, request, year, month):
-        days_with_post = Post.objects.filter(draft=False, publish__year=year, publish__month=month).dates(
-            'publish', 'day'
-        )
+        days_with_post = Post.objects.filter(
+            draft=False, publish__lte=timezone.now(), publish__year=year, publish__month=month
+        ).dates('publish', 'day')
         return Response(days_with_post)
 
 
@@ -293,6 +298,8 @@ class TopTagsView(APIView):
     """Вывод десяти самых популярных тегов и количества постов к ним"""
 
     def get(self, request):
-        tags = Tag.objects.annotate(npost=Count('post_tags', filter=Q(post_tags__draft=False))).order_by('-npost')[:10]
+        tags = Tag.objects.annotate(
+            npost=Count('post_tags', filter=Q(post_tags__draft=False, post_tags__publish__lte=timezone.now()))
+        ).order_by('-npost')[:10]
         serializer = TopTagsSerializer(tags, many=True)
         return Response(serializer.data)
