@@ -67,6 +67,12 @@ class CommentsSerializer(serializers.ModelSerializer):
 class AddCommentSerializer(serializers.ModelSerializer):
     """Добавление комментария к посту"""
 
+    def validate(self, attrs):
+        """Запрет на добавление комментария к черновым или ещё не опубликованным постам"""
+        if attrs['post'].draft or attrs['post'].publish > timezone.now():
+            raise serializers.ValidationError('Невозможно оставить комментарий для данного поста.')
+        return attrs
+
     class Meta:
         model = Comment
         fields = '__all__'
