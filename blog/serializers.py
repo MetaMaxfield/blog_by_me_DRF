@@ -1,3 +1,4 @@
+from django.utils import timezone
 from rest_framework import serializers
 from taggit.models import Tag
 from taggit.serializers import TaggitSerializer, TagListSerializerField
@@ -122,6 +123,12 @@ class AddRatingSerializer(serializers.ModelSerializer):
     class Meta:
         model = Rating
         fields = ('mark', 'post')
+
+    def validate(self, attrs):
+        """Запрет на добавление оценки к черновым или ещё не опубликованным постам"""
+        if attrs['post'].draft or attrs['post'].publish > timezone.now():
+            raise serializers.ValidationError('Невозможно оставить оценку для данного поста.')
+        return attrs
 
     def create(self, validated_data):
         return Rating.objects.create(
