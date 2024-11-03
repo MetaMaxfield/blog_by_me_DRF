@@ -165,7 +165,7 @@ class AddCommentView(APIView):
         comment = AddCommentSerializer(data=request.data)
         if comment.is_valid():
             comment.save()
-            return Response(status=status.HTTP_201_CREATED)
+            return Response({'message': 'Комментарий успешно добавлен.'}, status=status.HTTP_201_CREATED)
         return Response(comment.errors, status=status.HTTP_400_BAD_REQUEST)
 
 
@@ -245,14 +245,14 @@ class AddRatingView(APIView):
             rating = AddRatingSerializer(
                 instance=Rating.objects.get(ip=ip, post=request.data['post']), data=request.data
             )
-            status_code = status.HTTP_204_NO_CONTENT
+            status_code, message = status.HTTP_200_OK, 'Рейтинг успешно обновлен.'
         except Rating.DoesNotExist:
             rating = AddRatingSerializer(data=request.data)
-            status_code = status.HTTP_201_CREATED
+            status_code, message = status.HTTP_201_CREATED, 'Рейтинг успешно добавлен.'
 
         if rating.is_valid():
             rating.save(ip=ip)
-            return Response(status=status_code)
+            return Response({'message': message}, status=status_code)
 
         return Response(rating.errors, status=status.HTTP_400_BAD_REQUEST)
 
