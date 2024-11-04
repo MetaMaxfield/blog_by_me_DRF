@@ -47,6 +47,7 @@ INSTALLED_APPS = [
     'rest_framework',
     'debug_toolbar',
     'taggit',
+    'phonenumber_field',
     'ckeditor',
     'ckeditor_uploader',
     'blog',
