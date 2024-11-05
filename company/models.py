@@ -19,7 +19,7 @@ class About(models.Model):
     )
 
     def save(self, *args, **kwargs):
-        if About.objects.exists():
+        if not self.pk and About.objects.exists():
             raise ValidationError('Нельзя создать более одного экземпляра модели About.')
         super().save(*args, **kwargs)
 
