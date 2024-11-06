@@ -3,7 +3,7 @@ from django import forms
 from django.contrib import admin
 from django.core.exceptions import ObjectDoesNotExist
 
-from company.models import About
+from company.models import About, Contact
 
 
 class DescriptionAdminForm(forms.ModelForm):
@@ -53,4 +53,20 @@ class AboutAdmin(admin.ModelAdmin):
 
     def has_delete_permission(self, request, obj=None):
         """Запрет на удаление объектов модели вне зависимости от статуса пользователя"""
+        return False
+
+
+@admin.register(Contact)
+class ContactAdmin(admin.ModelAdmin):
+    """Обратная связь"""
+
+    list_display = ('name', 'email', 'phone', 'date', 'feedback')
+    list_filter = ('email', 'phone')
+    search_fields = ('name', 'email', 'phone')
+    list_editable = ('feedback',)
+    ordering = ('feedback',)
+    readonly_fields = ('name', 'email', 'phone', 'date', 'message')
+
+    def has_add_permission(self, request):
+        """Запрет на добавление объектов модели вне зависимости от статуса пользователя"""
         return False
