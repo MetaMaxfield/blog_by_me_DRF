@@ -43,9 +43,9 @@ class Post(models.Model):
 
     title = models.CharField(verbose_name='Заголовок', max_length=250)
     url = models.SlugField(max_length=25, unique_for_date='publish', unique=True)
-    # author = models.ForeignKey(
-    #     'users.CustomUser', verbose_name='Автор', on_delete=models.CASCADE, related_name='post_author', null=True
-    # )
+    author = models.ForeignKey(
+        'users.User', verbose_name='Автор', on_delete=models.CASCADE, related_name='post_author', null=True
+    )
     category = models.ForeignKey(
         'blog.Category', verbose_name='Категория', related_name='post_category', on_delete=models.SET_NULL, null=True
     )
