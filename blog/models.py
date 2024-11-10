@@ -1,6 +1,5 @@
 from django.core.validators import FileExtensionValidator
 from django.db import models
-from django.urls import reverse
 from django.utils import timezone
 from taggit.managers import TaggableManager
 
@@ -76,12 +75,6 @@ class Post(models.Model):
 
     def __str__(self):
         return self.title
-
-    def get_absolute_url(self):
-        return reverse('post_detail', kwargs={'slug': self.url})
-
-    def get_comment(self):
-        return self.comments.filter(parent__isnull=True, active=True).prefetch_related('parent_comments')
 
     class Meta:
         verbose_name = 'Пост'
