@@ -53,6 +53,7 @@ INSTALLED_APPS = [
     'blog',
     'company',
     'common',
+    'users',
 ]
 
 
@@ -107,6 +108,10 @@ DATABASES = {
         'PORT': '5432',
     }
 }
+
+
+# Модель для представления пользователя
+AUTH_USER_MODEL = 'users.User'
 
 
 # Password validation
