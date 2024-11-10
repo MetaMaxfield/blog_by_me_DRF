@@ -19,7 +19,7 @@ class About(models.Model):
     )
 
     def save(self, *args, **kwargs):
-        if About.objects.exists():
+        if not self.pk and About.objects.exists():
             raise ValidationError('Нельзя создать более одного экземпляра модели About.')
         super().save(*args, **kwargs)
 
@@ -29,3 +29,21 @@ class About(models.Model):
     class Meta:
         verbose_name = 'Содержание страницы "О нас"'
         verbose_name_plural = 'Содержание страницы "О нас"'
+
+
+class Contact(models.Model):
+    """Обратная связь"""
+
+    name = models.CharField(verbose_name='Имя')
+    email = models.EmailField(verbose_name='Эл. почта')
+    phone = PhoneNumberField(verbose_name='Телефон')
+    message = models.TextField(verbose_name='Сообщение')
+    date = models.DateTimeField(auto_now_add=True)
+    feedback = models.BooleanField(verbose_name='Обрантая связь', default=False)
+
+    def __str__(self):
+        return self.email
+
+    class Meta:
+        verbose_name = 'Запрос от пользователя блога'
+        verbose_name_plural = 'Запросы от пользователей блога'
