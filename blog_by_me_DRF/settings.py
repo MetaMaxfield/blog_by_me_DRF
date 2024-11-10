@@ -47,9 +47,13 @@ INSTALLED_APPS = [
     'rest_framework',
     'debug_toolbar',
     'taggit',
+    'phonenumber_field',
     'ckeditor',
     'ckeditor_uploader',
     'blog',
+    'company',
+    'common',
+    'users',
 ]
 
 
@@ -104,6 +108,10 @@ DATABASES = {
         'PORT': '5432',
     }
 }
+
+
+# Модель для представления пользователя
+AUTH_USER_MODEL = 'users.User'
 
 
 # Password validation
