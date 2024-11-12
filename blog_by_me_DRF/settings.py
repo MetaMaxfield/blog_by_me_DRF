@@ -30,6 +30,36 @@ SECRET_KEY = os.getenv('DJANGO_SECRET_KEY')
 DEBUG = True
 
 
+# Настройка конфигурации логирования для управления логами проекта
+LOGGING = {
+    'version': 1,
+    'disable_existing_loggers': False,
+    'formatters': {
+        'verbose': {
+            'format': '{levelname} {asctime} {module} {message}',
+            'style': '{',
+        },
+    },
+    'handlers': {
+        'file': {
+            'level': 'WARNING',
+            'class': 'logging.FileHandler',
+            'filename': os.path.join(BASE_DIR, 'logs', 'user_commands.log'),
+            'formatter': 'verbose',
+        },
+    },
+    'loggers': {
+        'common': {
+            'handlers': [
+                'file',
+            ],
+            'level': 'WARNING',
+            'propagate': False,
+        },
+    },
+}
+
+
 # Имена хоста / домена, которые может обслуживать этот сайт Django
 ALLOWED_HOSTS = [
     # '127.0.0.1'
@@ -293,3 +323,8 @@ CKEDITOR_CONFIGS = {
         ),
     }
 }
+
+
+# Названия групп пользователей
+TITLE_MODERATOR_GROUP = 'Модератор'
+TITLE_AUTHOR_GROUP = 'Автор'
