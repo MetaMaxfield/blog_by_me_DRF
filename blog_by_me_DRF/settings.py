@@ -323,3 +323,8 @@ CKEDITOR_CONFIGS = {
         ),
     }
 }
+
+
+# Названия групп пользователей
+TITLE_MODERATOR_GROUP = 'Модератор'
+TITLE_AUTHOR_GROUP = 'Автор'
