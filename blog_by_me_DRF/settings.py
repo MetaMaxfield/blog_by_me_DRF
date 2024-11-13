@@ -328,3 +328,8 @@ CKEDITOR_CONFIGS = {
 # Названия групп пользователей
 TITLE_MODERATOR_GROUP = 'Модератор'
 TITLE_AUTHOR_GROUP = 'Автор'
+
+
+# Названия оценок для рейтинга постов
+TITLE_LIKE_MARK = 'Лайк'
+TITLE_DISLIKE_MARK = 'Дизлайк'
