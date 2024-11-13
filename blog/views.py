@@ -22,6 +22,7 @@ from blog.serializers import (
     TopTagsSerializer,
     VideoListSerializer,
 )
+from users.models import User
 
 
 def get_client_ip(request):
@@ -63,9 +64,7 @@ class PostsView(APIView):
         object_list = (
             Post.objects.filter(draft=False, publish__lte=timezone.now())
             .select_related('category')
-            .prefetch_related(
-                'tagged_items__tag',
-            )
+            .prefetch_related('tagged_items__tag', Prefetch('author', User.objects.only('id', 'username')))
             .defer('video', 'created', 'updated', 'draft')
             .annotate(ncomments=Count('comments'))
             .order_by('-publish', '-id')
@@ -88,9 +87,7 @@ class SearchPostView(APIView):
         post_list = (
             Post.objects.filter(draft=False, publish__lte=timezone.now())
             .select_related('category')
-            .prefetch_related(
-                'tagged_items__tag',
-            )
+            .prefetch_related('tagged_items__tag', Prefetch('author', User.objects.only('id', 'username')))
             .defer('video', 'created', 'updated', 'draft')
             .annotate(ncomments=Count('comments'))
         )
@@ -119,9 +116,7 @@ class FilterDatePostsView(APIView):
         post_list = (
             Post.objects.filter(draft=False, publish__lte=timezone.now())
             .select_related('category')
-            .prefetch_related(
-                'tagged_items__tag',
-            )
+            .prefetch_related('tagged_items__tag', Prefetch('author', User.objects.only('id', 'username')))
             .defer('video', 'created', 'updated', 'draft')
             .annotate(ncomments=Count('comments'))
             .order_by('-publish', '-id')
@@ -142,9 +137,7 @@ class FilterTagPostsView(APIView):
         post_list = (
             Post.objects.filter(draft=False, publish__lte=timezone.now())
             .select_related('category')
-            .prefetch_related(
-                'tagged_items__tag',
-            )
+            .prefetch_related('tagged_items__tag', Prefetch('author', User.objects.only('id', 'username')))
             .defer('video', 'created', 'updated', 'draft')
             .annotate(ncomments=Count('comments'))
             .order_by('-publish', '-id')
@@ -176,6 +169,7 @@ class PostDetailView(APIView):
         ip = get_client_ip(request)
         post = get_object_or_404(
             Post.objects.filter(draft=False, publish__lte=timezone.now())
+            .prefetch_related(Prefetch('author', User.objects.only('id', 'username')))
             .defer('draft')
             .annotate(
                 ncomments=Count('comments'),
@@ -196,9 +190,7 @@ class CategoryListView(APIView):
         post_list = (
             Post.objects.filter(draft=False, publish__lte=timezone.now())
             .select_related('category')
-            .prefetch_related(
-                'tagged_items__tag',
-            )
+            .prefetch_related('tagged_items__tag', Prefetch('author', User.objects.only('id', 'username')))
             .defer('video', 'created', 'updated', 'draft')
             .annotate(ncomments=Count('comments'))
             .order_by('-publish', '-id')
@@ -223,6 +215,7 @@ class VideoListView(APIView):
             .select_related('post_video')
             .prefetch_related(
                 Prefetch('post_video__category', Category.objects.only('id', 'name')),
+                Prefetch('post_video__author', User.objects.only('id', 'username')),
             )
             .annotate(
                 ncomments=Count('post_video__comments'),
