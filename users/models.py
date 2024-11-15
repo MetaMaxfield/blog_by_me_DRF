@@ -37,7 +37,9 @@ class User(AbstractUser):
     birthday = models.DateField(verbose_name='Дата рождения', null=True, blank=True)
     description = models.TextField(verbose_name='Информация об пользователе', blank=True)
     image = models.ImageField(verbose_name='Изображение пользователя', upload_to='users/', null=True, blank=True)
-    total_likes = models.PositiveIntegerField(verbose_name='Общее количество лайков', default=0)
+    user_rating = models.IntegerField(
+        verbose_name='Рейтинг пользователя', default=0, help_text='Общий рейтинг автора, учитывающий лайки и дизлайки'
+    )
     is_staff = models.BooleanField(
         verbose_name='Статус персонала',
         default=True,
