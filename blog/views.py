@@ -12,7 +12,7 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 from taggit.models import Tag
 
-from blog.models import Category, Post, Rating, Video
+from blog.models import Category, Mark, Post, Rating, Video
 from blog.serializers import (
     AddCommentSerializer,
     AddRatingSerializer,
@@ -231,23 +231,43 @@ class VideoListView(APIView):
 class AddRatingView(APIView):
     """Добавление рейтинга к посту"""
 
+    RATING_UPDATE_MESSAGE = 'Рейтинг успешно обновлен.'
+    RATING_CREATE_MESSAGE = 'Рейтинг успешно добавлен.'
+
     def put(self, request):
+        # Получаем IP пользователя
         ip = get_client_ip(request)
 
+        # Пытаемся найти существующий рейтинг для поста и пользователя по IP
+        # Если рейтинг найден, сериализуем его для обновления
         try:
-            rating = AddRatingSerializer(
-                instance=Rating.objects.get(ip=ip, post=request.data['post']), data=request.data
-            )
-            status_code, message = status.HTTP_200_OK, 'Рейтинг успешно обновлен.'
-        except Rating.DoesNotExist:
-            rating = AddRatingSerializer(data=request.data)
-            status_code, message = status.HTTP_201_CREATED, 'Рейтинг успешно добавлен.'
+            rating = Rating.objects.get(ip=ip, post=request.data['post'])
+            rating_serializer = AddRatingSerializer(instance=rating, data=request.data)
+            status_code, message = status.HTTP_200_OK, self.RATING_UPDATE_MESSAGE
 
-        if rating.is_valid():
-            rating.save(ip=ip)
+        # Если рейтинга нет, создаем новый сериализатор для нового объекта рейтинга
+        except Rating.DoesNotExist:
+            rating_serializer = AddRatingSerializer(data=request.data)
+            status_code, message = status.HTTP_201_CREATED, self.RATING_CREATE_MESSAGE
+
+        if rating_serializer.is_valid():
+
+            mark = get_object_or_404(Mark, id=request.data['mark'])
+            author = get_object_or_404(User, post_author__id=request.data['post'])
+
+            # Если рейтинг обновляется, убираем старое значение
+            if message == self.RATING_UPDATE_MESSAGE:
+                author.user_rating -= rating.mark.value
+
+            # Прибавляем новое значение рейтинга и сохраняем
+            author.user_rating += mark.value
+            author.save()
+
+            rating_serializer.save(ip=ip)
+
             return Response({'message': message}, status=status_code)
 
-        return Response(rating.errors, status=status.HTTP_400_BAD_REQUEST)
+        return Response(rating_serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 
 class TopPostsView(APIView):
