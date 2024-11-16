@@ -43,14 +43,6 @@ class CommentInline(admin.TabularInline):
     extra = 1
 
 
-@admin.register(Mark)
-class MarkAdmin(admin.ModelAdmin):
-    """Оценки"""
-
-    list_display = ('nomination', 'value')
-    list_display_links = ('nomination',)
-
-
 @admin.register(Video)
 class VideoAdmin(admin.ModelAdmin):
     """Видео"""
