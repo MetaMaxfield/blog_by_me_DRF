@@ -1,6 +1,10 @@
+import logging
+
 from django.core.management import BaseCommand
 
 from company.models import About
+
+logger = logging.getLogger(__name__)
 
 
 class Command(BaseCommand):
@@ -8,7 +12,10 @@ class Command(BaseCommand):
 
     def handle(self, *args, **options):
         if About.objects.exists():
-            self.stdout.write(self.style.ERROR('Экземпляр модели About с информацией о компании уже существует.'))
+            info = 'Экземпляр модели About с информацией о компании уже существует.'
+            logger.error(info)
+            self.stdout.write(self.style.ERROR(info))
         else:
+            info = 'Экземпляр модели About с информацией о компании создан.'
             About.objects.create()
-            self.stdout.write(self.style.SUCCESS('Экземпляр модели About с информацией о компании создан.'))
+            self.stdout.write(self.style.SUCCESS(info))

@@ -4,3 +4,4 @@ venv
 __pycache__
 media/*
 !*media/.gitkeep
+backup/*
