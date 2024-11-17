@@ -5,7 +5,16 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from users.models import User
-from users.serializers import AuthorDetailSerializer
+from users.serializers import AuthorDetailSerializer, AuthorListSerializer
+
+
+class AuthorListView(APIView):
+    """Вывод списка авторов"""
+
+    def get(self, request):
+        author_list = User.objects.all().only('id', 'username', 'image', 'description')
+        authors_serializer = AuthorListSerializer(author_list, many=True)
+        return Response(authors_serializer.data)
 
 
 class AuthorDetailView(APIView):

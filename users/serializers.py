@@ -4,6 +4,14 @@ from rest_framework import serializers
 from users.models import User
 
 
+class AuthorListSerializer(serializers.ModelSerializer):
+    """Список авторов"""
+
+    class Meta:
+        model = User
+        fields = ('id', 'username', 'image', 'description')
+
+
 class AuthorDetailSerializer(serializers.ModelSerializer):
     """Данные автора"""
 
