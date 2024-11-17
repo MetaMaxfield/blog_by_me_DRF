@@ -49,7 +49,10 @@ class User(AbstractUser):
 
     def get_user_groups(self):
         """Метод получения групп пользователя"""
-        return list(self.groups.values_list('name', flat=True))
+        user_groups = list(self.groups.values_list('name', flat=True))
+        if self.is_superuser:
+            user_groups.insert(0, 'Администратор')
+        return user_groups
 
     get_user_groups.short_description = 'Группы пользователя'
 
