@@ -83,6 +83,7 @@ INSTALLED_APPS = [
     'blog',
     'company',
     'common',
+    'users',
 ]
 
 
@@ -137,6 +138,10 @@ DATABASES = {
         'PORT': '5432',
     }
 }
+
+
+# Модель для представления пользователя
+AUTH_USER_MODEL = 'users.User'
 
 
 # Password validation
@@ -318,3 +323,13 @@ CKEDITOR_CONFIGS = {
         ),
     }
 }
+
+
+# Названия групп пользователей
+TITLE_MODERATOR_GROUP = 'Модератор'
+TITLE_AUTHOR_GROUP = 'Автор'
+
+
+# Названия оценок для рейтинга постов
+TITLE_LIKE_MARK = 'Лайк'
+TITLE_DISLIKE_MARK = 'Дизлайк'

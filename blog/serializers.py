@@ -4,12 +4,14 @@ from taggit.models import Tag
 from taggit.serializers import TaggitSerializer, TagListSerializerField
 
 from blog.models import Category, Comment, Post, Rating, Video
+from users.serializers import AuthorDetailSerializer
 
 
 class PostsSerializer(TaggitSerializer, serializers.ModelSerializer):
     """Посты блога"""
 
     category = serializers.SlugRelatedField(slug_field='name', read_only=True)
+    author = AuthorDetailSerializer(fields=('id', 'username'))
     tags = TagListSerializerField()
     ncomments = serializers.IntegerField()
 
@@ -82,6 +84,7 @@ class PostDetailSerializer(TaggitSerializer, serializers.ModelSerializer):
     """Отдельный пост"""
 
     category = serializers.SlugRelatedField(slug_field='name', read_only=True)
+    author = AuthorDetailSerializer(fields=('id', 'username'))
     video = VideoDetailSerializer(read_only=True)
     tags = TagListSerializerField()
     comments = CommentsSerializer(read_only=True, many=True)
@@ -115,7 +118,7 @@ class CategoryListSerializer(serializers.ModelSerializer):
 class VideoListSerializer(serializers.ModelSerializer):
     """Список видеозаписей"""
 
-    post_video = PostDetailSerializer(read_only=True, fields=('id', 'url', 'category'))
+    post_video = PostDetailSerializer(read_only=True, fields=('id', 'url', 'category', 'author'))
     ncomments = serializers.IntegerField()
 
     class Meta:
