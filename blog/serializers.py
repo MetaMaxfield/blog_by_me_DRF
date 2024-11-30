@@ -75,6 +75,15 @@ class AddCommentSerializer(serializers.ModelSerializer):
             raise serializers.ValidationError('Невозможно оставить комментарий для данного поста.')
         return attrs
 
+    def validate_parent(self, parent):
+        """
+        Проверяет, что родительский комментарий не имеет собственного родителя
+        (исключение третьего уровня вложенности комментариев)
+        """
+        if parent and parent.parent:
+            raise serializers.ValidationError('Нельзя добавлять комментарии третьего уровня вложенности.')
+        return parent
+
     class Meta:
         model = Comment
         fields = '__all__'
