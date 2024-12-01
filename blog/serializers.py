@@ -7,13 +7,22 @@ from blog.models import Category, Comment, Post, Rating, Video
 from users.serializers import AuthorDetailSerializer
 
 
-class PostsSerializer(TaggitSerializer, serializers.ModelSerializer):
+class PostsSerializer(serializers.ModelSerializer):
     """Посты блога"""
 
     category = serializers.SlugRelatedField(slug_field='name', read_only=True)
     author = AuthorDetailSerializer(fields=('id', 'username'))
-    tags = TagListSerializerField()
+    tags = serializers.SerializerMethodField()
     ncomments = serializers.IntegerField()
+
+    def get_tags(self, obj):
+        """
+        Возвращает список тегов для поста в формате {"name": "наименование тега", "url": "URL тега"},
+        используя предзагруженные данные, если они доступны
+        """
+        if hasattr(obj, 'prefetched_tags'):
+            return [{'name': item.tag.name, 'url': item.tag.slug} for item in obj.prefetched_tags]
+        return [{'name': tag.name, 'url': tag.slug} for tag in obj.tags.all()]
 
     def __init__(self, *args, **kwargs):
         fields = kwargs.pop('fields', None)
