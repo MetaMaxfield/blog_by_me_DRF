@@ -181,7 +181,18 @@ class PostDetailView(APIView):
         ip = get_client_ip(request)
         post = get_object_or_404(
             Post.objects.filter(draft=False, publish__lte=timezone.now())
-            .prefetch_related(Prefetch('author', User.objects.only('id', 'username')))
+            .prefetch_related(
+                Prefetch('author', User.objects.only('id', 'username')),
+                Prefetch(
+                    'comments',
+                    Comment.objects.filter(parent=None)
+                    .prefetch_related(
+                        Prefetch('children', Comment.objects.defer('email', 'active'), to_attr='prefetched_comments2')
+                    )
+                    .defer('email', 'active'),
+                    to_attr='prefetched_comments1',
+                ),
+            )
             .defer('draft')
             .annotate(
                 ncomments=Count('comments'),

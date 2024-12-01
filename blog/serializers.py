@@ -48,29 +48,26 @@ class VideoDetailSerializer(serializers.ModelSerializer):
         fields = ('title', 'file')
 
 
-class FilterCommentsListSerializer(serializers.ListSerializer):
-    """Фильтр комментариев, только parents"""
-
-    def to_representation(self, data):
-        data = data.filter(parent=None)
-        return super().to_representation(data)
-
-
-class RecursiveSerializer(serializers.Serializer):
-    """Вывод рекурсивно children"""
-
-    def to_representation(self, value):
-        serializer = self.parent.parent.__class__(value, context=self.context)
-        return serializer.data
-
-
 class CommentsSerializer(serializers.ModelSerializer):
     """Вывод комментариев к постам"""
 
-    children = RecursiveSerializer(many=True)
+    children = serializers.SerializerMethodField()
+
+    def get_children(self, obj):
+        """
+        Возвращает вложенные комментарии второго уровня для комментария первого уровня.
+
+        Метод проверяет, есть ли предзагруженные данные для комментариев второго уровня
+        в атрибуте `prefetched_comments2`. Если данные есть, они сериализуются и возвращаются.
+        Если данных нет, возвращается пустой список, что означает отсутствие данных,
+        а не ошибку в предзагрузке.
+        """
+
+        if hasattr(obj, 'prefetched_comments2'):
+            return CommentsSerializer(obj.prefetched_comments2, many=True, context=self.context).data
+        return []
 
     class Meta:
-        list_serializer_class = FilterCommentsListSerializer
         model = Comment
         exclude = ('email', 'active', 'parent')
 
@@ -105,9 +102,16 @@ class PostDetailSerializer(TaggitSerializer, serializers.ModelSerializer):
     author = AuthorDetailSerializer(fields=('id', 'username'))
     video = VideoDetailSerializer(read_only=True)
     tags = TagListSerializerField()
-    comments = CommentsSerializer(read_only=True, many=True)
+    comments = serializers.SerializerMethodField()
     ncomments = serializers.IntegerField()
     user_rating = serializers.IntegerField()
+
+    def get_comments(self, obj):
+        """
+        Возвращает список комментариев для поста,
+        используя предзагруженные данные в атрибуте 'prefetched_comments1'
+        """
+        return CommentsSerializer(obj.prefetched_comments1, context=self.context, read_only=True, many=True).data
 
     def __init__(self, *args, **kwargs):
         fields = kwargs.pop('fields', None)
