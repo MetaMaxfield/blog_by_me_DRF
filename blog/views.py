@@ -213,7 +213,10 @@ class CategoryListView(APIView):
         post_list = (
             Post.objects.filter(draft=False, publish__lte=timezone.now())
             .select_related('category')
-            .prefetch_related('tagged_items__tag', Prefetch('author', User.objects.only('id', 'username')))
+            .prefetch_related(
+                Prefetch('tagged_items', queryset=TaggedItem.objects.select_related('tag'), to_attr='prefetched_tags'),
+                Prefetch('author', User.objects.only('id', 'username')),
+            )
             .defer('video', 'created', 'updated', 'draft')
             .annotate(ncomments=Count('comments'))
             .order_by('-publish', '-id')
