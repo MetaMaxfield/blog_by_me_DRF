@@ -239,6 +239,11 @@ class VideoListView(APIView):
             .prefetch_related(
                 Prefetch('post_video__category', Category.objects.only('id', 'name')),
                 Prefetch('post_video__author', User.objects.only('id', 'username')),
+                Prefetch(
+                    'post_video__tagged_items',
+                    queryset=TaggedItem.objects.select_related('tag'),
+                    to_attr='prefetched_tags',
+                ),
             )
             .annotate(
                 ncomments=Count('post_video__comments'),

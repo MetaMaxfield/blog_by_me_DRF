@@ -146,7 +146,7 @@ class CategoryListSerializer(serializers.ModelSerializer):
 class VideoListSerializer(serializers.ModelSerializer):
     """Список видеозаписей"""
 
-    post_video = PostDetailSerializer(read_only=True, fields=('id', 'url', 'category', 'author'))
+    post_video = PostDetailSerializer(read_only=True, fields=('id', 'url', 'category', 'author', 'tags'))
     ncomments = serializers.IntegerField()
 
     class Meta:
