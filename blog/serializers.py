@@ -1,19 +1,18 @@
 from django.utils import timezone
 from rest_framework import serializers
 from taggit.models import Tag
-from taggit.serializers import TaggitSerializer, TagListSerializerField
 
 from blog.models import Category, Comment, Post, Rating, Video
 from users.serializers import AuthorDetailSerializer
 
 
-class PostsSerializer(serializers.ModelSerializer):
-    """Посты блога"""
+class TagsSerializerMixin(serializers.ModelSerializer):
+    """
+    Миксин для сериализаторов, добавляющий поле tags для оптимизированного отображения тегов.
+    Класс обеспечивает работу с предзагруженными данными тегов, сокращая количество запросов к базе данных
+    """
 
-    category = serializers.SlugRelatedField(slug_field='name', read_only=True)
-    author = AuthorDetailSerializer(fields=('id', 'username'))
     tags = serializers.SerializerMethodField()
-    ncomments = serializers.IntegerField()
 
     def get_tags(self, obj):
         """
@@ -23,6 +22,14 @@ class PostsSerializer(serializers.ModelSerializer):
         if hasattr(obj, 'prefetched_tags'):
             return [{'name': item.tag.name, 'url': item.tag.slug} for item in obj.prefetched_tags]
         return [{'name': tag.name, 'url': tag.slug} for tag in obj.tags.all()]
+
+
+class PostsSerializer(TagsSerializerMixin, serializers.ModelSerializer):
+    """Посты блога"""
+
+    category = serializers.SlugRelatedField(slug_field='name', read_only=True)
+    author = AuthorDetailSerializer(fields=('id', 'username'))
+    ncomments = serializers.IntegerField()
 
     def __init__(self, *args, **kwargs):
         fields = kwargs.pop('fields', None)
@@ -95,13 +102,12 @@ class AddCommentSerializer(serializers.ModelSerializer):
         fields = '__all__'
 
 
-class PostDetailSerializer(TaggitSerializer, serializers.ModelSerializer):
+class PostDetailSerializer(TagsSerializerMixin, serializers.ModelSerializer):
     """Отдельный пост"""
 
     category = serializers.SlugRelatedField(slug_field='name', read_only=True)
     author = AuthorDetailSerializer(fields=('id', 'username'))
     video = VideoDetailSerializer(read_only=True)
-    tags = TagListSerializerField()
     comments = serializers.SerializerMethodField()
     ncomments = serializers.IntegerField()
     user_rating = serializers.IntegerField()
