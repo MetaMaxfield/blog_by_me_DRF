@@ -10,9 +10,9 @@ from rest_framework.generics import get_object_or_404
 from rest_framework.pagination import CursorPagination, LimitOffsetPagination, PageNumberPagination
 from rest_framework.response import Response
 from rest_framework.views import APIView
-from taggit.models import Tag
+from taggit.models import Tag, TaggedItem
 
-from blog.models import Category, Mark, Post, Rating, Video
+from blog.models import Category, Comment, Mark, Post, Rating, Video
 from blog.serializers import (
     AddCommentSerializer,
     AddRatingSerializer,
@@ -64,7 +64,10 @@ class PostsView(APIView):
         object_list = (
             Post.objects.filter(draft=False, publish__lte=timezone.now())
             .select_related('category')
-            .prefetch_related('tagged_items__tag', Prefetch('author', User.objects.only('id', 'username')))
+            .prefetch_related(
+                Prefetch('tagged_items', queryset=TaggedItem.objects.select_related('tag'), to_attr='prefetched_tags'),
+                Prefetch('author', User.objects.only('id', 'username')),
+            )
             .defer('video', 'created', 'updated', 'draft')
             .annotate(ncomments=Count('comments'))
             .order_by('-publish', '-id')
@@ -87,7 +90,10 @@ class SearchPostView(APIView):
         post_list = (
             Post.objects.filter(draft=False, publish__lte=timezone.now())
             .select_related('category')
-            .prefetch_related('tagged_items__tag', Prefetch('author', User.objects.only('id', 'username')))
+            .prefetch_related(
+                Prefetch('tagged_items', queryset=TaggedItem.objects.select_related('tag'), to_attr='prefetched_tags'),
+                Prefetch('author', User.objects.only('id', 'username')),
+            )
             .defer('video', 'created', 'updated', 'draft')
             .annotate(ncomments=Count('comments'))
         )
@@ -116,7 +122,10 @@ class FilterDatePostsView(APIView):
         post_list = (
             Post.objects.filter(draft=False, publish__lte=timezone.now())
             .select_related('category')
-            .prefetch_related('tagged_items__tag', Prefetch('author', User.objects.only('id', 'username')))
+            .prefetch_related(
+                Prefetch('tagged_items', queryset=TaggedItem.objects.select_related('tag'), to_attr='prefetched_tags'),
+                Prefetch('author', User.objects.only('id', 'username')),
+            )
             .defer('video', 'created', 'updated', 'draft')
             .annotate(ncomments=Count('comments'))
             .order_by('-publish', '-id')
@@ -137,7 +146,10 @@ class FilterTagPostsView(APIView):
         post_list = (
             Post.objects.filter(draft=False, publish__lte=timezone.now())
             .select_related('category')
-            .prefetch_related('tagged_items__tag', Prefetch('author', User.objects.only('id', 'username')))
+            .prefetch_related(
+                Prefetch('tagged_items', queryset=TaggedItem.objects.select_related('tag'), to_attr='prefetched_tags'),
+                Prefetch('author', User.objects.only('id', 'username')),
+            )
             .defer('video', 'created', 'updated', 'draft')
             .annotate(ncomments=Count('comments'))
             .order_by('-publish', '-id')
@@ -169,7 +181,18 @@ class PostDetailView(APIView):
         ip = get_client_ip(request)
         post = get_object_or_404(
             Post.objects.filter(draft=False, publish__lte=timezone.now())
-            .prefetch_related(Prefetch('author', User.objects.only('id', 'username')))
+            .prefetch_related(
+                Prefetch('author', User.objects.only('id', 'username')),
+                Prefetch(
+                    'comments',
+                    Comment.objects.filter(parent=None)
+                    .prefetch_related(
+                        Prefetch('children', Comment.objects.defer('email', 'active'), to_attr='prefetched_comments2')
+                    )
+                    .defer('email', 'active'),
+                    to_attr='prefetched_comments1',
+                ),
+            )
             .defer('draft')
             .annotate(
                 ncomments=Count('comments'),
@@ -190,7 +213,10 @@ class CategoryListView(APIView):
         post_list = (
             Post.objects.filter(draft=False, publish__lte=timezone.now())
             .select_related('category')
-            .prefetch_related('tagged_items__tag', Prefetch('author', User.objects.only('id', 'username')))
+            .prefetch_related(
+                Prefetch('tagged_items', queryset=TaggedItem.objects.select_related('tag'), to_attr='prefetched_tags'),
+                Prefetch('author', User.objects.only('id', 'username')),
+            )
             .defer('video', 'created', 'updated', 'draft')
             .annotate(ncomments=Count('comments'))
             .order_by('-publish', '-id')
@@ -216,6 +242,11 @@ class VideoListView(APIView):
             .prefetch_related(
                 Prefetch('post_video__category', Category.objects.only('id', 'name')),
                 Prefetch('post_video__author', User.objects.only('id', 'username')),
+                Prefetch(
+                    'post_video__tagged_items',
+                    queryset=TaggedItem.objects.select_related('tag'),
+                    to_attr='prefetched_tags',
+                ),
             )
             .annotate(
                 ncomments=Count('post_video__comments'),

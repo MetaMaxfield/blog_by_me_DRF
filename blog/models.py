@@ -1,3 +1,4 @@
+from django.core.exceptions import ValidationError
 from django.core.validators import FileExtensionValidator
 from django.db import models
 from django.utils import timezone
@@ -103,6 +104,16 @@ class Comment(models.Model):
     created = models.DateTimeField(auto_now_add=True)
     updated = models.DateTimeField(auto_now=True)
     active = models.BooleanField(default=True)
+
+    def clean(self):
+        """Ограничение создания третьего уровня вложенности комментариев"""
+        if self.parent and self.parent.parent:
+            raise ValidationError('Нельзя добавлять комментарии третьего уровня вложенности.')
+
+    def save(self, *args, **kwargs):
+        """Cохранение объекта модели с вызовом метода валидации clean()"""
+        self.clean()
+        return super().save(*args, **kwargs)
 
     def __str__(self):
         return f'Комментарий от {self.name} к {self.post}'
