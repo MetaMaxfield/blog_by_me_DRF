@@ -34,11 +34,9 @@ class AuthorDetailSerializer(serializers.ModelSerializer):
         from blog.serializers import PostsSerializer
 
         return PostsSerializer(
-            obj.post_author.filter(draft=False, publish__lte=timezone.now())
-            .order_by('-publish', '-id')
-            .select_related('category')[:3],
+            obj.last_3_posts,
             many=True,
-            fields=('title', 'category', 'url', 'body', 'image', 'publish'),
+            fields=('title', 'category', 'url', 'body', 'image', 'publish', 'tags'),
         ).data
 
     class Meta:

@@ -1,9 +1,11 @@
-from django.db.models import Count, Q
+from django.db.models import Count, Prefetch, Q
 from django.utils import timezone
 from rest_framework.generics import get_object_or_404
 from rest_framework.response import Response
 from rest_framework.views import APIView
+from taggit.models import TaggedItem
 
+from blog.models import Post
 from users.models import User
 from users.serializers import AuthorDetailSerializer, AuthorListSerializer
 
@@ -26,7 +28,20 @@ class AuthorDetailView(APIView):
                 nposts=Count(
                     'post_author', filter=Q(post_author__draft=False, post_author__publish__lte=timezone.now())
                 )
-            ).defer('password', 'last_login', 'is_active', 'is_staff'),
+            )
+            .prefetch_related(
+                Prefetch(
+                    'post_author',
+                    Post.objects.filter(draft=False, publish__lte=timezone.now())
+                    .order_by('-publish', '-id')
+                    .select_related('category')
+                    .prefetch_related(
+                        Prefetch('tagged_items', TaggedItem.objects.select_related('tag'), to_attr='prefetched_tags')
+                    )[:3],
+                    to_attr='last_3_posts',
+                )
+            )
+            .defer('password', 'last_login', 'is_active', 'is_staff'),
             id=pk,
         )
         author_serializer = AuthorDetailSerializer(author)
