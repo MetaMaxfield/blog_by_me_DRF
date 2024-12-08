@@ -2,6 +2,7 @@ from django.contrib.auth.models import AbstractUser
 from django.core import validators
 from django.db import models
 from django.utils.deconstruct import deconstructible
+from django.utils.translation import gettext as _
 
 
 @deconstructible
@@ -51,8 +52,8 @@ class User(AbstractUser):
         """Метод получения групп пользователя"""
         user_groups = list(self.groups.values_list('name', flat=True))
         if self.is_superuser:
-            user_groups.insert(0, 'Администратор')
-        return user_groups
+            user_groups.insert(0, _('Администратор'))
+        return [_(group_name) for group_name in user_groups]
 
     get_user_groups.short_description = 'Группы пользователя'
 

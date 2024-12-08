@@ -1,4 +1,5 @@
 from django.utils import timezone
+from django.utils.translation import gettext as _
 from rest_framework import serializers
 from taggit.models import Tag
 
@@ -85,7 +86,7 @@ class AddCommentSerializer(serializers.ModelSerializer):
     def validate(self, attrs):
         """Запрет на добавление комментария к черновым или ещё не опубликованным постам"""
         if attrs['post'].draft or attrs['post'].publish > timezone.now():
-            raise serializers.ValidationError('Невозможно оставить комментарий для данного поста.')
+            raise serializers.ValidationError(_('Невозможно оставить комментарий для данного поста.'))
         return attrs
 
     def validate_parent(self, parent):
@@ -94,7 +95,7 @@ class AddCommentSerializer(serializers.ModelSerializer):
         (исключение третьего уровня вложенности комментариев)
         """
         if parent and parent.parent:
-            raise serializers.ValidationError('Нельзя добавлять комментарии третьего уровня вложенности.')
+            raise serializers.ValidationError(_('Нельзя добавлять комментарии третьего уровня вложенности.'))
         return parent
 
     class Meta:
@@ -164,7 +165,7 @@ class AddRatingSerializer(serializers.ModelSerializer):
     def validate(self, attrs):
         """Запрет на добавление оценки к черновым или ещё не опубликованным постам"""
         if attrs['post'].draft or attrs['post'].publish > timezone.now():
-            raise serializers.ValidationError('Невозможно оставить оценку для данного поста.')
+            raise serializers.ValidationError(_('Невозможно оставить оценку для данного поста.'))
         return attrs
 
     def create(self, validated_data):
