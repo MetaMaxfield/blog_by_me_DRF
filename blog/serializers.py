@@ -45,7 +45,7 @@ class PostsSerializer(TagsSerializerMixin, serializers.ModelSerializer):
 
     class Meta:
         model = Post
-        exclude = ('created', 'updated', 'draft', 'video')
+        exclude = ('created', 'updated', 'draft', 'video', 'title_ru', 'title_en', 'body_en', 'body_ru')
 
 
 class VideoDetailSerializer(serializers.ModelSerializer):
@@ -133,7 +133,7 @@ class PostDetailSerializer(TagsSerializerMixin, serializers.ModelSerializer):
 
     class Meta:
         model = Post
-        exclude = ('draft',)
+        exclude = ('draft', 'title_ru', 'title_en', 'body_ru', 'body_en')
 
 
 class CategoryListSerializer(serializers.ModelSerializer):
@@ -141,7 +141,7 @@ class CategoryListSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Category
-        fields = '__all__'
+        exclude = ('name_ru', 'name_en', 'description_ru', 'description_en')
 
 
 class VideoListSerializer(serializers.ModelSerializer):
@@ -152,7 +152,7 @@ class VideoListSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Video
-        fields = '__all__'
+        exclude = ('title_ru', 'title_en', 'description_ru', 'description_en')
 
 
 class AddRatingSerializer(serializers.ModelSerializer):
