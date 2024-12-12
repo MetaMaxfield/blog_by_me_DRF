@@ -1,12 +1,13 @@
 from django.contrib import admin
 from django.contrib.auth.admin import UserAdmin
 from django.utils.safestring import mark_safe
+from modeltranslation.admin import TranslationAdmin
 
 from users.models import User
 
 
 @admin.register(User)
-class UserAdmin(UserAdmin):
+class UserAdmin(TranslationAdmin, UserAdmin):
     """Расширенная модель пользователя"""
 
     model = User

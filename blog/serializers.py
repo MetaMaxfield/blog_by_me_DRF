@@ -1,4 +1,5 @@
 from django.utils import timezone
+from django.utils.translation import gettext as _
 from rest_framework import serializers
 from taggit.models import Tag
 
@@ -44,7 +45,7 @@ class PostsSerializer(TagsSerializerMixin, serializers.ModelSerializer):
 
     class Meta:
         model = Post
-        exclude = ('created', 'updated', 'draft', 'video')
+        exclude = ('created', 'updated', 'draft', 'video', 'title_ru', 'title_en', 'body_en', 'body_ru')
 
 
 class VideoDetailSerializer(serializers.ModelSerializer):
@@ -85,7 +86,7 @@ class AddCommentSerializer(serializers.ModelSerializer):
     def validate(self, attrs):
         """Запрет на добавление комментария к черновым или ещё не опубликованным постам"""
         if attrs['post'].draft or attrs['post'].publish > timezone.now():
-            raise serializers.ValidationError('Невозможно оставить комментарий для данного поста.')
+            raise serializers.ValidationError(_('Невозможно оставить комментарий для данного поста.'))
         return attrs
 
     def validate_parent(self, parent):
@@ -94,7 +95,7 @@ class AddCommentSerializer(serializers.ModelSerializer):
         (исключение третьего уровня вложенности комментариев)
         """
         if parent and parent.parent:
-            raise serializers.ValidationError('Нельзя добавлять комментарии третьего уровня вложенности.')
+            raise serializers.ValidationError(_('Нельзя добавлять комментарии третьего уровня вложенности.'))
         return parent
 
     class Meta:
@@ -132,7 +133,7 @@ class PostDetailSerializer(TagsSerializerMixin, serializers.ModelSerializer):
 
     class Meta:
         model = Post
-        exclude = ('draft',)
+        exclude = ('draft', 'title_ru', 'title_en', 'body_ru', 'body_en')
 
 
 class CategoryListSerializer(serializers.ModelSerializer):
@@ -140,7 +141,7 @@ class CategoryListSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Category
-        fields = '__all__'
+        exclude = ('name_ru', 'name_en', 'description_ru', 'description_en')
 
 
 class VideoListSerializer(serializers.ModelSerializer):
@@ -151,7 +152,7 @@ class VideoListSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Video
-        fields = '__all__'
+        exclude = ('title_ru', 'title_en', 'description_ru', 'description_en')
 
 
 class AddRatingSerializer(serializers.ModelSerializer):
@@ -164,7 +165,7 @@ class AddRatingSerializer(serializers.ModelSerializer):
     def validate(self, attrs):
         """Запрет на добавление оценки к черновым или ещё не опубликованным постам"""
         if attrs['post'].draft or attrs['post'].publish > timezone.now():
-            raise serializers.ValidationError('Невозможно оставить оценку для данного поста.')
+            raise serializers.ValidationError(_('Невозможно оставить оценку для данного поста.'))
         return attrs
 
     def create(self, validated_data):
