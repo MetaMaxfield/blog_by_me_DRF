@@ -54,6 +54,20 @@ class VideoAdmin(TranslationAdmin):
     list_filter = ('title',)
     ordering = ('title', 'create_at')
     search_fields = ('title',)
+    fieldsets = [
+        ['Наименование', {'fields': ('title',)}],
+        ['Содержание', {'fields': ('description',)}],
+        ['Файл', {'fields': ('file',)}],
+    ]
+
+    def get_fieldsets(self, request, obj=None):
+        """Удаляет возможность изменения файла с видео, если объект уже существует"""
+        fieldsets = super().get_fieldsets(request, obj)
+        if obj:
+            fieldsets_for_change = fieldsets.copy()
+            fieldsets_for_change.pop(2)
+            return fieldsets_for_change
+        return fieldsets
 
     def get_queryset(self, request):
         """Получение видео из базы данных в зависимости от статуса пользователя"""
