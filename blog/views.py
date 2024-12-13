@@ -5,6 +5,7 @@ from django.contrib.postgres.search import SearchQuery, SearchRank, SearchVector
 from django.db.models import Count, OuterRef, Prefetch, Q, Subquery, Sum
 from django.db.models.functions import Coalesce
 from django.utils import timezone
+from django.utils.translation import gettext as _
 from rest_framework import status
 from rest_framework.generics import get_object_or_404
 from rest_framework.pagination import CursorPagination, LimitOffsetPagination, PageNumberPagination
@@ -85,7 +86,7 @@ class SearchPostView(APIView):
         q = request.query_params.get('q')
         if not q:
             return Response(
-                {'detail': 'Пожалуйста, введите текст для поиска постов.'}, status=status.HTTP_400_BAD_REQUEST
+                {'detail': _('Пожалуйста, введите текст для поиска постов.')}, status=status.HTTP_400_BAD_REQUEST
             )
         post_list = (
             Post.objects.filter(draft=False, publish__lte=timezone.now())
@@ -105,7 +106,9 @@ class SearchPostView(APIView):
             .order_by('-rank')
         )
         if not post_list.exists():
-            return Response({'detail': f'Посты по запросу "{q}" не найдены'}, status=status.HTTP_204_NO_CONTENT)
+            return Response(
+                {'detail': _('Посты по запросу "{q}" не найдены').format(q=q)}, status=status.HTTP_204_NO_CONTENT
+            )
         paginator = PageNumberPaginationForPosts()
         paginated_post_list = paginator.paginate_queryset(post_list, request)
         serializer = PostsSerializer(paginated_post_list, many=True)
@@ -117,7 +120,7 @@ class FilterDatePostsView(APIView):
 
     def get(self, request, date_post):
         if not re.match(r'^\d{4}-\d{2}-\d{2}$', date_post):
-            return Response({'detail': 'Задан неправильный формат даты'}, status=status.HTTP_400_BAD_REQUEST)
+            return Response({'detail': _('Задан неправильный формат даты')}, status=status.HTTP_400_BAD_REQUEST)
         date_post = datetime.datetime.strptime(date_post, '%Y-%m-%d').date()
         post_list = (
             Post.objects.filter(draft=False, publish__lte=timezone.now())
@@ -132,7 +135,10 @@ class FilterDatePostsView(APIView):
         )
         post_list = post_list.filter(created__date=date_post)
         if not post_list.exists():
-            return Response({'detail': f'Посты с датой {date_post} не найдены'}, status=status.HTTP_204_NO_CONTENT)
+            return Response(
+                {'detail': _('Посты с датой "{date_post}" не найдены').format(date_post=date_post)},
+                status=status.HTTP_204_NO_CONTENT,
+            )
         paginator = PageNumberPaginationForPosts()
         paginated_post_list = paginator.paginate_queryset(post_list, request)
         serializer = PostsSerializer(paginated_post_list, many=True)
@@ -156,7 +162,7 @@ class FilterTagPostsView(APIView):
         )
         post_list = post_list.filter(tags__slug=tag_slug)
         if not post_list.exists():
-            return Response({'detail': 'Посты с заданным тегом не найдены'}, status=status.HTTP_204_NO_CONTENT)
+            return Response({'detail': _('Посты с заданным тегом не найдены')}, status=status.HTTP_204_NO_CONTENT)
         paginator = PageNumberPaginationForPosts()
         paginated_post_list = paginator.paginate_queryset(post_list, request)
         serializer = PostsSerializer(paginated_post_list, many=True)
@@ -170,7 +176,7 @@ class AddCommentView(APIView):
         comment = AddCommentSerializer(data=request.data)
         if comment.is_valid():
             comment.save()
-            return Response({'message': 'Комментарий успешно добавлен.'}, status=status.HTTP_201_CREATED)
+            return Response({'message': _('Комментарий успешно добавлен.')}, status=status.HTTP_201_CREATED)
         return Response(comment.errors, status=status.HTTP_400_BAD_REQUEST)
 
 
@@ -262,8 +268,8 @@ class VideoListView(APIView):
 class AddRatingView(APIView):
     """Добавление рейтинга к посту"""
 
-    RATING_UPDATE_MESSAGE = 'Рейтинг успешно обновлен.'
-    RATING_CREATE_MESSAGE = 'Рейтинг успешно добавлен.'
+    RATING_UPDATE_MESSAGE = _('Рейтинг успешно обновлен.')
+    RATING_CREATE_MESSAGE = _('Рейтинг успешно добавлен.')
 
     def put(self, request):
         # Получаем IP пользователя
@@ -296,7 +302,7 @@ class AddRatingView(APIView):
 
             rating_serializer.save(ip=ip)
 
-            return Response({'message': message}, status=status_code)
+            return Response({'message': _(message)}, status=status_code)
 
         return Response(rating_serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 

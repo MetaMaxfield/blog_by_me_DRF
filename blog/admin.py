@@ -4,10 +4,11 @@ from django.contrib import admin
 from django.contrib.auth.models import Group
 from django.utils import timezone
 from django.utils.safestring import mark_safe
+from modeltranslation.admin import TranslationAdmin
 
 from blog_by_me_DRF.settings import TITLE_MODERATOR_GROUP
 
-from .models import Category, Comment, Mark, Post, Rating, Video
+from .models import Category, Comment, Post, Rating, Video
 
 # Зарегистрированная модель Comment для отображения в панели администрациии
 admin.site.register(Comment)
@@ -16,7 +17,8 @@ admin.site.register(Comment)
 class PostAdminForm(forms.ModelForm):
     """Настройки CKEditor для поля "body" и валидация даты публикации в модели Post"""
 
-    body = forms.CharField(label='Содержание', widget=CKEditorUploadingWidget())
+    body_ru = forms.CharField(label='Содержание [ru]:', widget=CKEditorUploadingWidget())
+    body_en = forms.CharField(label='Содержание [en]:', widget=CKEditorUploadingWidget())
 
     def clean_publish(self):
         """
@@ -44,7 +46,7 @@ class CommentInline(admin.TabularInline):
 
 
 @admin.register(Video)
-class VideoAdmin(admin.ModelAdmin):
+class VideoAdmin(TranslationAdmin):
     """Видео"""
 
     list_display = ('title', 'file', 'create_at')
@@ -52,6 +54,20 @@ class VideoAdmin(admin.ModelAdmin):
     list_filter = ('title',)
     ordering = ('title', 'create_at')
     search_fields = ('title',)
+    fieldsets = [
+        ['Наименование', {'fields': ('title',)}],
+        ['Содержание', {'fields': ('description',)}],
+        ['Файл', {'fields': ('file',)}],
+    ]
+
+    def get_fieldsets(self, request, obj=None):
+        """Удаляет возможность изменения файла с видео, если объект уже существует"""
+        fieldsets = super().get_fieldsets(request, obj)
+        if obj:
+            fieldsets_for_change = fieldsets.copy()
+            fieldsets_for_change.pop(2)
+            return fieldsets_for_change
+        return fieldsets
 
     def get_queryset(self, request):
         """Получение видео из базы данных в зависимости от статуса пользователя"""
@@ -67,7 +83,7 @@ class VideoAdmin(admin.ModelAdmin):
 
 
 @admin.register(Category)
-class CategoryAdmin(admin.ModelAdmin):
+class CategoryAdmin(TranslationAdmin):
     """Категории"""
 
     list_display = ('name', 'description', 'url')
@@ -79,7 +95,7 @@ class CategoryAdmin(admin.ModelAdmin):
 
 
 @admin.register(Post)
-class PostAdmin(admin.ModelAdmin):
+class PostAdmin(TranslationAdmin):
     """Посты"""
 
     list_display = [

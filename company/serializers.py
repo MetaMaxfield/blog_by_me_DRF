@@ -8,7 +8,7 @@ class AboutSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = About
-        fields = '__all__'
+        exclude = ('description_ru', 'description_en')
 
 
 class ContactSerializer(serializers.ModelSerializer):

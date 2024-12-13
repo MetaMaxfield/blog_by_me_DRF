@@ -13,6 +13,7 @@ https://docs.djangoproject.com/en/4.2/ref/settings/
 import os
 from pathlib import Path
 
+from django.utils.translation import gettext_lazy as _
 from dotenv import load_dotenv
 
 load_dotenv()
@@ -68,6 +69,7 @@ ALLOWED_HOSTS = [
 
 # Application definition
 INSTALLED_APPS = [
+    'modeltranslation',
     'django.contrib.admin',
     'django.contrib.auth',
     'django.contrib.contenttypes',
@@ -91,6 +93,8 @@ INSTALLED_APPS = [
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
+    'blog_by_me_DRF.middleware.ForceInRussian',
+    'django.middleware.locale.LocaleMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
@@ -173,6 +177,17 @@ TIME_ZONE = 'Europe/Saratov'
 
 # Логическое значение, указывающее включение системы перевода Django
 USE_I18N = True
+
+
+# Список всех доступных языков
+LANGUAGES = (
+    ('ru', _('Русский')),
+    ('en', _('English')),
+)
+
+
+# Путь Python к файлам локализации
+LOCALE_PATHS = (os.path.join(BASE_DIR, 'locale/'),)
 
 
 # Логическое значение, учитывающее часовой пояс
@@ -326,8 +341,8 @@ CKEDITOR_CONFIGS = {
 
 
 # Названия групп пользователей
-TITLE_MODERATOR_GROUP = 'Модератор'
-TITLE_AUTHOR_GROUP = 'Автор'
+TITLE_MODERATOR_GROUP = _('Модератор')
+TITLE_AUTHOR_GROUP = _('Автор')
 
 
 # Названия оценок для рейтинга постов

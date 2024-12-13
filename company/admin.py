@@ -2,6 +2,7 @@ from ckeditor_uploader.widgets import CKEditorUploadingWidget
 from django import forms
 from django.contrib import admin
 from django.core.exceptions import ObjectDoesNotExist
+from modeltranslation.admin import TranslationAdmin
 
 from company.models import About, Contact
 
@@ -9,7 +10,12 @@ from company.models import About, Contact
 class DescriptionAdminForm(forms.ModelForm):
     """Ckeditor для поля "description" модели About"""
 
-    description = forms.CharField(label='Основной текстовый контент страницы', widget=CKEditorUploadingWidget())
+    description_ru = forms.CharField(
+        label='Основной текстовый контент страницы [ru]:', widget=CKEditorUploadingWidget()
+    )
+    description_en = forms.CharField(
+        label='Основной текстовый контент страницы [en]:', widget=CKEditorUploadingWidget()
+    )
 
     class Meta:
         model = About
@@ -17,7 +23,7 @@ class DescriptionAdminForm(forms.ModelForm):
 
 
 @admin.register(About)
-class AboutAdmin(admin.ModelAdmin):
+class AboutAdmin(TranslationAdmin):
     """Страница «О нас»"""
 
     form = DescriptionAdminForm
