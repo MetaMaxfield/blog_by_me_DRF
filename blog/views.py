@@ -98,7 +98,10 @@ class SearchPostView(APIView):
             .defer('video', 'created', 'updated', 'draft')
             .annotate(ncomments=Count('comments'))
         )
-        search_vector = SearchVector('title', 'body')
+        if request.LANGUAGE_CODE == 'ru':
+            search_vector = SearchVector('title_ru', 'body_ru')
+        else:
+            search_vector = SearchVector('title_en', 'body_en')
         search_query = SearchQuery(q)
         post_list = (
             post_list.annotate(search=search_vector, rank=SearchRank(search_vector, search_query))
