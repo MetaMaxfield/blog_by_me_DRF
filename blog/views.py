@@ -23,6 +23,7 @@ from blog.serializers import (
     TopTagsSerializer,
     VideoListSerializer,
 )
+from blog_by_me_DRF.settings import LANGUAGES
 from users.models import User
 
 
@@ -98,7 +99,7 @@ class SearchPostView(APIView):
             .defer('video', 'created', 'updated', 'draft')
             .annotate(ncomments=Count('comments'))
         )
-        if request.LANGUAGE_CODE == 'ru':
+        if request.LANGUAGE_CODE == LANGUAGES[0][0]:
             search_vector = SearchVector('title_ru', 'body_ru')
         else:
             search_vector = SearchVector('title_en', 'body_en')
