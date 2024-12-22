@@ -143,7 +143,7 @@ class Rating(models.Model):
     """Рейтинг"""
 
     ip = models.CharField(verbose_name='IP адрес', max_length=15)
-    mark = models.ForeignKey('blog.Mark', verbose_name='Оценка', on_delete=models.CASCADE)
+    mark = models.ForeignKey('blog.Mark', verbose_name='Оценка', on_delete=models.CASCADE, related_name='rating_mark')
     post = models.ForeignKey('blog.Post', verbose_name='Пост', on_delete=models.CASCADE, related_name='rating_post')
 
     def __str__(self):

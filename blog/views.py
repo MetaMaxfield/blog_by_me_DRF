@@ -188,7 +188,6 @@ class PostDetailView(APIView):
     """Вывод отдельного поста"""
 
     def get(self, request, slug):
-        ip = get_client_ip(request)
         post = get_object_or_404(
             Post.objects.filter(draft=False, publish__lte=timezone.now())
             .prefetch_related(
@@ -206,11 +205,21 @@ class PostDetailView(APIView):
             .defer('draft')
             .annotate(
                 ncomments=Count('comments'),
-                user_rating=Subquery(Rating.objects.filter(ip=ip, post=OuterRef('pk')).values('mark__value')),
             ),
             url=slug,
         )
+
+        ip = get_client_ip(request)
+
+        try:
+            user_rating = Mark.objects.get(rating_mark__ip=ip, rating_mark__post=post).id
+        except Mark.DoesNotExist:
+            user_rating = None
+
+        post.user_rating = user_rating
+
         serializer = PostDetailSerializer(post)
+
         return Response(serializer.data)
 
 
