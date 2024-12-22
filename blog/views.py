@@ -2,7 +2,8 @@ import datetime
 import re
 
 from django.contrib.postgres.search import SearchQuery, SearchRank, SearchVector
-from django.db.models import Count, OuterRef, Prefetch, Q, Subquery, Sum
+from django.core.cache import cache
+from django.db.models import Count, Prefetch, Q, Sum
 from django.db.models.functions import Coalesce
 from django.utils import timezone
 from django.utils.translation import gettext as _
@@ -23,7 +24,7 @@ from blog.serializers import (
     TopTagsSerializer,
     VideoListSerializer,
 )
-from blog_by_me_DRF.settings import LANGUAGES
+from blog_by_me_DRF import settings
 from users.models import User
 
 
@@ -63,20 +64,36 @@ class PostsView(APIView):
     """Вывод постов блога"""
 
     def get(self, request):
-        object_list = (
-            Post.objects.filter(draft=False, publish__lte=timezone.now())
-            .select_related('category')
-            .prefetch_related(
-                Prefetch('tagged_items', queryset=TaggedItem.objects.select_related('tag'), to_attr='prefetched_tags'),
-                Prefetch('author', User.objects.only('id', 'username')),
+
+        object_list = cache.get(f'{settings.CACHE_KEY}{settings.KEY_POSTS_LIST}')
+
+        if not object_list:
+
+            object_list = (
+                Post.objects.filter(draft=False, publish__lte=timezone.now())
+                .select_related('category')
+                .prefetch_related(
+                    Prefetch(
+                        'tagged_items', queryset=TaggedItem.objects.select_related('tag'), to_attr='prefetched_tags'
+                    ),
+                    Prefetch('author', User.objects.only('id', 'username')),
+                )
+                .defer('video', 'created', 'updated', 'draft')
+                .annotate(ncomments=Count('comments'))
+                .order_by('-publish', '-id')
             )
-            .defer('video', 'created', 'updated', 'draft')
-            .annotate(ncomments=Count('comments'))
-            .order_by('-publish', '-id')
-        )
+
+            cache.set(
+                key=f'{settings.CACHE_KEY}{settings.KEY_POSTS_LIST}',
+                value=object_list,
+                timeout=settings.CACHE_TIMES[settings.KEY_POSTS_LIST],
+            )
+
         paginator = PageNumberPaginationForPosts()
         paginated_object_list = paginator.paginate_queryset(object_list, request)
+
         serializer = PostsSerializer(paginated_object_list, many=True)
+
         return paginator.get_paginated_response(serializer.data)
 
 
@@ -84,38 +101,59 @@ class SearchPostView(APIView):
     """Вывод результатов поиска постов блога"""
 
     def get(self, request):
+
         q = request.query_params.get('q')
         if not q:
             return Response(
                 {'detail': _('Пожалуйста, введите текст для поиска постов.')}, status=status.HTTP_400_BAD_REQUEST
             )
-        post_list = (
-            Post.objects.filter(draft=False, publish__lte=timezone.now())
-            .select_related('category')
-            .prefetch_related(
-                Prefetch('tagged_items', queryset=TaggedItem.objects.select_related('tag'), to_attr='prefetched_tags'),
-                Prefetch('author', User.objects.only('id', 'username')),
+
+        post_list = cache.get(f'{settings.CACHE_KEY}{settings.KEY_POSTS_LIST}')
+
+        if not post_list:
+
+            post_list = (
+                Post.objects.filter(draft=False, publish__lte=timezone.now())
+                .select_related('category')
+                .prefetch_related(
+                    Prefetch(
+                        'tagged_items', queryset=TaggedItem.objects.select_related('tag'), to_attr='prefetched_tags'
+                    ),
+                    Prefetch('author', User.objects.only('id', 'username')),
+                )
+                .defer('video', 'created', 'updated', 'draft')
+                .annotate(ncomments=Count('comments'))
             )
-            .defer('video', 'created', 'updated', 'draft')
-            .annotate(ncomments=Count('comments'))
-        )
-        if request.LANGUAGE_CODE == LANGUAGES[0][0]:
+
+            cache.set(
+                key=f'{settings.CACHE_KEY}{settings.KEY_POSTS_LIST}',
+                value=post_list,
+                timeout=settings.CACHE_TIMES[settings.KEY_POSTS_LIST],
+            )
+
+        if request.LANGUAGE_CODE == settings.LANGUAGES[0][0]:
             search_vector = SearchVector('title_ru', 'body_ru')
         else:
             search_vector = SearchVector('title_en', 'body_en')
+
         search_query = SearchQuery(q)
+
         post_list = (
             post_list.annotate(search=search_vector, rank=SearchRank(search_vector, search_query))
             .filter(search=search_query)
             .order_by('-rank')
         )
+
         if not post_list.exists():
             return Response(
                 {'detail': _('Посты по запросу "{q}" не найдены').format(q=q)}, status=status.HTTP_204_NO_CONTENT
             )
+
         paginator = PageNumberPaginationForPosts()
         paginated_post_list = paginator.paginate_queryset(post_list, request)
+
         serializer = PostsSerializer(paginated_post_list, many=True)
+
         return paginator.get_paginated_response(serializer.data)
 
 
@@ -123,29 +161,48 @@ class FilterDatePostsView(APIView):
     """Вывод постов с фильтрацией по дате"""
 
     def get(self, request, date_post):
+
         if not re.match(r'^\d{4}-\d{2}-\d{2}$', date_post):
             return Response({'detail': _('Задан неправильный формат даты')}, status=status.HTTP_400_BAD_REQUEST)
-        date_post = datetime.datetime.strptime(date_post, '%Y-%m-%d').date()
-        post_list = (
-            Post.objects.filter(draft=False, publish__lte=timezone.now())
-            .select_related('category')
-            .prefetch_related(
-                Prefetch('tagged_items', queryset=TaggedItem.objects.select_related('tag'), to_attr='prefetched_tags'),
-                Prefetch('author', User.objects.only('id', 'username')),
+
+        post_list = cache.get(f'{settings.CACHE_KEY}{settings.KEY_POSTS_LIST}')
+
+        if not post_list:
+
+            post_list = (
+                Post.objects.filter(draft=False, publish__lte=timezone.now())
+                .select_related('category')
+                .prefetch_related(
+                    Prefetch(
+                        'tagged_items', queryset=TaggedItem.objects.select_related('tag'), to_attr='prefetched_tags'
+                    ),
+                    Prefetch('author', User.objects.only('id', 'username')),
+                )
+                .defer('video', 'created', 'updated', 'draft')
+                .annotate(ncomments=Count('comments'))
+                .order_by('-publish', '-id')
             )
-            .defer('video', 'created', 'updated', 'draft')
-            .annotate(ncomments=Count('comments'))
-            .order_by('-publish', '-id')
-        )
+
+            cache.set(
+                key=f'{settings.CACHE_KEY}{settings.KEY_POSTS_LIST}',
+                value=post_list,
+                timeout=settings.CACHE_TIMES[settings.KEY_POSTS_LIST],
+            )
+
+        date_post = datetime.datetime.strptime(date_post, '%Y-%m-%d').date()
         post_list = post_list.filter(created__date=date_post)
+
         if not post_list.exists():
             return Response(
                 {'detail': _('Посты с датой "{date_post}" не найдены').format(date_post=date_post)},
                 status=status.HTTP_204_NO_CONTENT,
             )
+
         paginator = PageNumberPaginationForPosts()
         paginated_post_list = paginator.paginate_queryset(post_list, request)
+
         serializer = PostsSerializer(paginated_post_list, many=True)
+
         return paginator.get_paginated_response(serializer.data)
 
 
@@ -153,23 +210,41 @@ class FilterTagPostsView(APIView):
     """Вывод постов с фильтрацией по тегу"""
 
     def get(self, request, tag_slug):
-        post_list = (
-            Post.objects.filter(draft=False, publish__lte=timezone.now())
-            .select_related('category')
-            .prefetch_related(
-                Prefetch('tagged_items', queryset=TaggedItem.objects.select_related('tag'), to_attr='prefetched_tags'),
-                Prefetch('author', User.objects.only('id', 'username')),
+
+        post_list = cache.get(f'{settings.CACHE_KEY}{settings.KEY_POSTS_LIST}')
+
+        if not post_list:
+
+            post_list = (
+                Post.objects.filter(draft=False, publish__lte=timezone.now())
+                .select_related('category')
+                .prefetch_related(
+                    Prefetch(
+                        'tagged_items', queryset=TaggedItem.objects.select_related('tag'), to_attr='prefetched_tags'
+                    ),
+                    Prefetch('author', User.objects.only('id', 'username')),
+                )
+                .defer('video', 'created', 'updated', 'draft')
+                .annotate(ncomments=Count('comments'))
+                .order_by('-publish', '-id')
             )
-            .defer('video', 'created', 'updated', 'draft')
-            .annotate(ncomments=Count('comments'))
-            .order_by('-publish', '-id')
-        )
+
+            cache.set(
+                key=f'{settings.CACHE_KEY}{settings.KEY_POSTS_LIST}',
+                value=post_list,
+                timeout=settings.CACHE_TIMES[settings.KEY_POSTS_LIST],
+            )
+
         post_list = post_list.filter(tags__slug=tag_slug)
+
         if not post_list.exists():
             return Response({'detail': _('Посты с заданным тегом не найдены')}, status=status.HTTP_204_NO_CONTENT)
+
         paginator = PageNumberPaginationForPosts()
         paginated_post_list = paginator.paginate_queryset(post_list, request)
+
         serializer = PostsSerializer(paginated_post_list, many=True)
+
         return paginator.get_paginated_response(serializer.data)
 
 
@@ -188,29 +263,50 @@ class PostDetailView(APIView):
     """Вывод отдельного поста"""
 
     def get(self, request, slug):
-        ip = get_client_ip(request)
-        post = get_object_or_404(
-            Post.objects.filter(draft=False, publish__lte=timezone.now())
-            .prefetch_related(
-                Prefetch('author', User.objects.only('id', 'username')),
-                Prefetch(
-                    'comments',
-                    Comment.objects.filter(parent=None)
-                    .prefetch_related(
-                        Prefetch('children', Comment.objects.defer('email', 'active'), to_attr='prefetched_comments2')
-                    )
-                    .defer('email', 'active'),
-                    to_attr='prefetched_comments1',
+
+        post = cache.get(f'{settings.CACHE_KEY}{settings.KEY_POST_DETAIL}{slug}')
+
+        if not post:
+            post = get_object_or_404(
+                Post.objects.filter(draft=False, publish__lte=timezone.now())
+                .prefetch_related(
+                    Prefetch('author', User.objects.only('id', 'username')),
+                    Prefetch(
+                        'comments',
+                        Comment.objects.filter(parent=None)
+                        .prefetch_related(
+                            Prefetch(
+                                'children', Comment.objects.defer('email', 'active'), to_attr='prefetched_comments2'
+                            )
+                        )
+                        .defer('email', 'active'),
+                        to_attr='prefetched_comments1',
+                    ),
+                )
+                .defer('draft')
+                .annotate(
+                    ncomments=Count('comments'),
                 ),
+                url=slug,
             )
-            .defer('draft')
-            .annotate(
-                ncomments=Count('comments'),
-                user_rating=Subquery(Rating.objects.filter(ip=ip, post=OuterRef('pk')).values('mark__value')),
-            ),
-            url=slug,
-        )
+
+            cache.set(
+                key=f'{settings.CACHE_KEY}{settings.KEY_POST_DETAIL}{slug}',
+                value=post,
+                timeout=settings.CACHE_TIMES[settings.KEY_POST_DETAIL],
+            )
+
+        ip = get_client_ip(request)
+
+        try:
+            user_rating = Mark.objects.get(rating_mark__ip=ip, rating_mark__post=post).id
+        except Mark.DoesNotExist:
+            user_rating = None
+
+        post.user_rating = user_rating
+
         serializer = PostDetailSerializer(post)
+
         return Response(serializer.data)
 
 
@@ -218,22 +314,47 @@ class CategoryListView(APIView):
     """Вывод списка категорий и постов к ним"""
 
     def get(self, request):
-        category_list = Category.objects.all()
-        category_serializer = CategoryListSerializer(category_list, many=True)
-        post_list = (
-            Post.objects.filter(draft=False, publish__lte=timezone.now())
-            .select_related('category')
-            .prefetch_related(
-                Prefetch('tagged_items', queryset=TaggedItem.objects.select_related('tag'), to_attr='prefetched_tags'),
-                Prefetch('author', User.objects.only('id', 'username')),
+
+        category_list = cache.get(f'{settings.CACHE_KEY}{settings.KEY_CATEGORIES_LIST}')
+
+        if not category_list:
+            category_list = Category.objects.all()
+            cache.set(
+                key=f'{settings.CACHE_KEY}{settings.KEY_CATEGORIES_LIST}',
+                value=category_list,
+                timeout=settings.CACHE_TIMES[settings.KEY_CATEGORIES_LIST],
             )
-            .defer('video', 'created', 'updated', 'draft')
-            .annotate(ncomments=Count('comments'))
-            .order_by('-publish', '-id')
-        )
+
+        post_list = cache.get(f'{settings.CACHE_KEY}{settings.KEY_POSTS_LIST}')
+
+        if not post_list:
+
+            post_list = (
+                Post.objects.filter(draft=False, publish__lte=timezone.now())
+                .select_related('category')
+                .prefetch_related(
+                    Prefetch(
+                        'tagged_items', queryset=TaggedItem.objects.select_related('tag'), to_attr='prefetched_tags'
+                    ),
+                    Prefetch('author', User.objects.only('id', 'username')),
+                )
+                .defer('video', 'created', 'updated', 'draft')
+                .annotate(ncomments=Count('comments'))
+                .order_by('-publish', '-id')
+            )
+
+            cache.set(
+                key=f'{settings.CACHE_KEY}{settings.KEY_POSTS_LIST}',
+                value=post_list,
+                timeout=settings.CACHE_TIMES[settings.KEY_POSTS_LIST],
+            )
+
         paginator = CursorPaginationForPostsInCategoryList()
         paginated_post_list = paginator.paginate_queryset(post_list, request)
+
+        category_serializer = CategoryListSerializer(category_list, many=True)
         posts_serializer = PostsSerializer(paginated_post_list, many=True)
+
         return paginator.get_paginated_response(
             {
                 'category_list': category_serializer.data,
@@ -246,26 +367,40 @@ class VideoListView(APIView):
     """Вывод всех видеозаписей"""
 
     def get(self, request):
-        video_list = (
-            Video.objects.filter(post_video__draft=False, post_video__publish__lte=timezone.now())
-            .select_related('post_video')
-            .prefetch_related(
-                Prefetch('post_video__category', Category.objects.only('id', 'name')),
-                Prefetch('post_video__author', User.objects.only('id', 'username')),
-                Prefetch(
-                    'post_video__tagged_items',
-                    queryset=TaggedItem.objects.select_related('tag'),
-                    to_attr='prefetched_tags',
-                ),
+
+        video_list = cache.get(f'{settings.CACHE_KEY}{settings.KEY_VIDEOS_LIST}')
+
+        if not video_list:
+
+            video_list = (
+                Video.objects.filter(post_video__draft=False, post_video__publish__lte=timezone.now())
+                .select_related('post_video')
+                .prefetch_related(
+                    Prefetch('post_video__category', Category.objects.only('id', 'name')),
+                    Prefetch('post_video__author', User.objects.only('id', 'username')),
+                    Prefetch(
+                        'post_video__tagged_items',
+                        queryset=TaggedItem.objects.select_related('tag'),
+                        to_attr='prefetched_tags',
+                    ),
+                )
+                .annotate(
+                    ncomments=Count('post_video__comments'),
+                )
+                .order_by('-create_at')
             )
-            .annotate(
-                ncomments=Count('post_video__comments'),
+
+            cache.set(
+                key=f'{settings.CACHE_KEY}{settings.KEY_VIDEOS_LIST}',
+                value=video_list,
+                timeout=settings.CACHE_TIMES[settings.KEY_VIDEOS_LIST],
             )
-            .order_by('-create_at')
-        )
+
         paginator = LimitOffsetPaginationForVideoList()
         paginated_video_list = paginator.paginate_queryset(video_list, request)
+
         videos_serializer = VideoListSerializer(paginated_video_list, many=True)
+
         return paginator.get_paginated_response(videos_serializer.data)
 
 
@@ -315,13 +450,26 @@ class TopPostsView(APIView):
     """Вывод трёх постов с наивысшим рейтингом"""
 
     def get(self, request):
-        top_posts = (
-            Post.objects.filter(draft=False, publish__lte=timezone.now())
-            .only('title', 'body', 'url')
-            .alias(total_likes=Coalesce(Sum('rating_post__mark__value'), 0))
-            .order_by('-total_likes')[:3]
-        )
+
+        top_posts = cache.get(f'{settings.CACHE_KEY}{settings.KEY_TOP_POSTS}')
+
+        if not top_posts:
+
+            top_posts = (
+                Post.objects.filter(draft=False, publish__lte=timezone.now())
+                .only('title', 'body', 'url')
+                .alias(total_likes=Coalesce(Sum('rating_post__mark__value'), 0))
+                .order_by('-total_likes')[:3]
+            )
+
+            cache.set(
+                key=f'{settings.CACHE_KEY}{settings.KEY_TOP_POSTS}',
+                value=top_posts,
+                timeout=settings.CACHE_TIMES[settings.KEY_TOP_POSTS],
+            )
+
         serializer = PostsSerializer(top_posts, many=True, fields=('title', 'body', 'url'))
+
         return Response(serializer.data)
 
 
@@ -329,12 +477,25 @@ class LastPostsView(APIView):
     """Вывод трех последних опубликованных постов"""
 
     def get(self, request):
-        last_posts = (
-            Post.objects.filter(draft=False, publish__lte=timezone.now())
-            .only('image', 'title', 'body', 'url')
-            .order_by('-publish', '-id')[:3]
-        )
+
+        last_posts = cache.get(f'{settings.CACHE_KEY}{settings.KEY_LAST_POSTS}')
+
+        if not last_posts:
+
+            last_posts = (
+                Post.objects.filter(draft=False, publish__lte=timezone.now())
+                .only('image', 'title', 'body', 'url')
+                .order_by('-publish', '-id')[:3]
+            )
+
+            cache.set(
+                key=f'{settings.CACHE_KEY}{settings.KEY_LAST_POSTS}',
+                value=last_posts,
+                timeout=settings.CACHE_TIMES[settings.KEY_LAST_POSTS],
+            )
+
         serializer = PostsSerializer(last_posts, many=True, fields=('image', 'title', 'body', 'url'))
+
         return Response(serializer.data)
 
 
@@ -342,9 +503,21 @@ class DaysInCalendarView(APIView):
     """Вывод дат публикации постов для заданного месяца"""
 
     def get(self, request, year, month):
-        days_with_post = Post.objects.filter(
-            draft=False, publish__lte=timezone.now(), publish__year=year, publish__month=month
-        ).dates('publish', 'day')
+
+        days_with_post = cache.get(f'{settings.CACHE_KEY}{settings.KEY_POSTS_CALENDAR}')
+
+        if not days_with_post:
+
+            days_with_post = Post.objects.filter(
+                draft=False, publish__lte=timezone.now(), publish__year=year, publish__month=month
+            ).dates('publish', 'day')
+
+            cache.set(
+                key=f'{settings.CACHE_KEY}{settings.KEY_POSTS_CALENDAR}',
+                value=days_with_post,
+                timeout=settings.CACHE_TIMES[settings.KEY_POSTS_CALENDAR],
+            )
+
         return Response(days_with_post)
 
 
@@ -352,8 +525,21 @@ class TopTagsView(APIView):
     """Вывод десяти самых популярных тегов и количества постов к ним"""
 
     def get(self, request):
-        tags = Tag.objects.annotate(
-            npost=Count('post_tags', filter=Q(post_tags__draft=False, post_tags__publish__lte=timezone.now()))
-        ).order_by('-npost')[:10]
+
+        tags = cache.get(f'{settings.CACHE_KEY}{settings.KEY_ALL_TAGS}')
+
+        if not tags:
+
+            tags = Tag.objects.annotate(
+                npost=Count('post_tags', filter=Q(post_tags__draft=False, post_tags__publish__lte=timezone.now()))
+            ).order_by('-npost')[:10]
+
+            cache.set(
+                key=f'{settings.CACHE_KEY}{settings.KEY_ALL_TAGS}',
+                value=tags,
+                timeout=settings.CACHE_TIMES[settings.KEY_ALL_TAGS],
+            )
+
         serializer = TopTagsSerializer(tags, many=True)
+
         return Response(serializer.data)
