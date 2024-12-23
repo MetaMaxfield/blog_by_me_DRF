@@ -182,6 +182,14 @@ INTERNAL_IPS = [
 ]
 
 
+# Настроки для работы SMTP сервера
+EMAIL_HOST = 'smtp.gmail.com'
+EMAIL_HOST_USER = os.getenv('EMAIL_HOST_USER_KEY')
+EMAIL_HOST_PASSWORD = os.getenv('EMAIL_HOST_PASSWORD_KEY')
+EMAIL_PORT = 587
+EMAIL_USE_TLS = True
+
+
 # Путь к каталогу загрузки мультимедиа CKEditor
 CKEDITOR_UPLOAD_PATH = "uploads/"
 

@@ -1,10 +1,23 @@
+from django.core.mail import send_mail
 from rest_framework import status
 from rest_framework.generics import get_object_or_404
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
-from company.models import About, Contact
+from blog_by_me_DRF.settings import EMAIL_HOST_USER
+from company.models import About
 from company.serializers import AboutSerializer, ContactSerializer
+
+
+def send(user_mail):
+    """Отправка электронного письма при получении обратной связи через форму"""
+    send_mail(
+        'Запрос к администрации веб-приложения MAXFIELD.',
+        'Ваш запрос зарегистрирован. Ожидайте обратную связь на данный адрес эл. почты. ',
+        EMAIL_HOST_USER,
+        [user_mail],
+        fail_silently=False,
+    )
 
 
 class AboutView(APIView):
@@ -23,6 +36,7 @@ class ContactView(APIView):
         serializer = ContactSerializer(data=request.data)
         if serializer.is_valid():
             serializer.save()
+            send(serializer.validated_data['email'])
             return Response(
                 {'message': 'Сообщение успешно отправлено администрации проекта.'}, status=status.HTTP_201_CREATED
             )
