@@ -9,7 +9,6 @@ from django.utils import timezone
 from django.utils.translation import gettext as _
 from rest_framework import status
 from rest_framework.generics import get_object_or_404
-from rest_framework.pagination import CursorPagination, LimitOffsetPagination, PageNumberPagination
 from rest_framework.response import Response
 from rest_framework.views import APIView
 from taggit.models import Tag, TaggedItem
@@ -25,6 +24,11 @@ from blog.serializers import (
     VideoListSerializer,
 )
 from blog_by_me_DRF import settings
+from services.blog.paginator import (
+    CursorPaginationForPostsInCategoryList,
+    LimitOffsetPaginationForVideoList,
+    PageNumberPaginationForPosts,
+)
 from users.models import User
 
 
@@ -36,28 +40,6 @@ def get_client_ip(request):
     else:
         ip = request.META.get('REMOTE_ADDR')
     return ip
-
-
-class PageNumberPaginationForPosts(PageNumberPagination):
-    """Пагинация списка постов для постраничного отображения"""
-
-    page_size = 3
-    page_size_query_param = 'page_size'
-    max_page_size = 50
-
-
-class CursorPaginationForPostsInCategoryList(CursorPagination):
-    """Пагинация для списка постов в разделе "Категории" с помощью курсора"""
-
-    page_size = 10
-    ordering = ('-publish', '-id')
-
-
-class LimitOffsetPaginationForVideoList(LimitOffsetPagination):
-    """Пагинация для списка видеозаписей на основе смещения и лимита"""
-
-    default_limit = 3
-    max_limit = 50
 
 
 class PostsView(APIView):
