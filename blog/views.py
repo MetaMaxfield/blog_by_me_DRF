@@ -1,7 +1,5 @@
-import datetime
 import re
 
-from django.contrib.postgres.search import SearchQuery, SearchRank, SearchVector
 from django.core.cache import cache
 from django.db.models import Count, Prefetch, Q, Sum
 from django.db.models.functions import Coalesce
@@ -24,6 +22,7 @@ from blog.serializers import (
     VideoListSerializer,
 )
 from blog_by_me_DRF import settings
+from services import search
 from services.blog.paginator import (
     CursorPaginationForPostsInCategoryList,
     LimitOffsetPaginationForVideoList,
@@ -113,18 +112,7 @@ class SearchPostView(APIView):
                 timeout=settings.CACHE_TIMES[settings.KEY_POSTS_LIST],
             )
 
-        if request.LANGUAGE_CODE == settings.LANGUAGES[0][0]:
-            search_vector = SearchVector('title_ru', 'body_ru')
-        else:
-            search_vector = SearchVector('title_en', 'body_en')
-
-        search_query = SearchQuery(q)
-
-        post_list = (
-            post_list.annotate(search=search_vector, rank=SearchRank(search_vector, search_query))
-            .filter(search=search_query)
-            .order_by('-rank')
-        )
+        post_list = search.search_by_q(q, post_list, request.LANGUAGE_CODE)
 
         if not post_list.exists():
             return Response(
@@ -171,8 +159,7 @@ class FilterDatePostsView(APIView):
                 timeout=settings.CACHE_TIMES[settings.KEY_POSTS_LIST],
             )
 
-        date_post = datetime.datetime.strptime(date_post, '%Y-%m-%d').date()
-        post_list = post_list.filter(created__date=date_post)
+        post_list = search.search_by_date(post_list, date_post)
 
         if not post_list.exists():
             return Response(
@@ -217,7 +204,7 @@ class FilterTagPostsView(APIView):
                 timeout=settings.CACHE_TIMES[settings.KEY_POSTS_LIST],
             )
 
-        post_list = post_list.filter(tags__slug=tag_slug)
+        post_list = search.search_by_tag(post_list, tag_slug)
 
         if not post_list.exists():
             return Response({'detail': _('Посты с заданным тегом не найдены')}, status=status.HTTP_204_NO_CONTENT)
