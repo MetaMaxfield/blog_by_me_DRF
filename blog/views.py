@@ -28,17 +28,8 @@ from services.blog.paginator import (
     LimitOffsetPaginationForVideoList,
     PageNumberPaginationForPosts,
 )
+from services.client_ip import get_client_ip
 from users.models import User
-
-
-def get_client_ip(request):
-    """Получение IP пользоваетля"""
-    x_forwarded_for = request.META.get('HTTP_X_FORWARDED_FOR')
-    if x_forwarded_for:
-        ip = x_forwarded_for.split(',')[0]
-    else:
-        ip = request.META.get('REMOTE_ADDR')
-    return ip
 
 
 class PostsView(APIView):
