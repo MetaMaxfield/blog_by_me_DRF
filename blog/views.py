@@ -22,7 +22,7 @@ from blog.serializers import (
     VideoListSerializer,
 )
 from blog_by_me_DRF import settings
-from services import search
+from services import rating, search
 from services.blog.paginator import (
     CursorPaginationForPostsInCategoryList,
     LimitOffsetPaginationForVideoList,
@@ -256,14 +256,7 @@ class PostDetailView(APIView):
                 timeout=settings.CACHE_TIMES[settings.KEY_POST_DETAIL],
             )
 
-        ip = get_client_ip(request)
-
-        try:
-            user_rating = Mark.objects.get(rating_mark__ip=ip, rating_mark__post=post).id
-        except Mark.DoesNotExist:
-            user_rating = None
-
-        post.user_rating = user_rating
+        post.user_rating = rating.has_user_rated_post(get_client_ip(request), post)
 
         serializer = PostDetailSerializer(post)
 
