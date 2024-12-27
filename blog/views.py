@@ -36,7 +36,7 @@ class PostsView(APIView):
         object_list = cache.get(f'{settings.CACHE_KEY}{settings.KEY_POSTS_LIST}')
 
         if not object_list:
-            object_list = queryset.qs_post_list()
+            object_list = queryset.qs_definition(settings.KEY_POSTS_LIST)
             cache.set(
                 key=f'{settings.CACHE_KEY}{settings.KEY_POSTS_LIST}',
                 value=object_list,
@@ -65,7 +65,7 @@ class SearchPostView(APIView):
         post_list = cache.get(f'{settings.CACHE_KEY}{settings.KEY_POSTS_LIST}')
 
         if not post_list:
-            post_list = queryset.qs_post_list()
+            post_list = queryset.qs_definition(settings.KEY_POSTS_LIST)
             cache.set(
                 key=f'{settings.CACHE_KEY}{settings.KEY_POSTS_LIST}',
                 value=post_list,
@@ -98,7 +98,7 @@ class FilterDatePostsView(APIView):
         post_list = cache.get(f'{settings.CACHE_KEY}{settings.KEY_POSTS_LIST}')
 
         if not post_list:
-            post_list = queryset.qs_post_list()
+            post_list = queryset.qs_definition(settings.KEY_POSTS_LIST)
             cache.set(
                 key=f'{settings.CACHE_KEY}{settings.KEY_POSTS_LIST}',
                 value=post_list,
@@ -129,7 +129,7 @@ class FilterTagPostsView(APIView):
         post_list = cache.get(f'{settings.CACHE_KEY}{settings.KEY_POSTS_LIST}')
 
         if not post_list:
-            post_list = queryset.qs_post_list()
+            post_list = queryset.qs_definition(settings.KEY_POSTS_LIST)
             cache.set(
                 key=f'{settings.CACHE_KEY}{settings.KEY_POSTS_LIST}',
                 value=post_list,
@@ -168,7 +168,7 @@ class PostDetailView(APIView):
         post = cache.get(f'{settings.CACHE_KEY}{settings.KEY_POST_DETAIL}{slug}')
 
         if not post:
-            post = queryset.qs_post_detail(slug)
+            post = queryset.qs_definition(settings.KEY_POST_DETAIL, slug=slug)
             cache.set(
                 key=f'{settings.CACHE_KEY}{settings.KEY_POST_DETAIL}{slug}',
                 value=post,
@@ -190,7 +190,7 @@ class CategoryListView(APIView):
         category_list = cache.get(f'{settings.CACHE_KEY}{settings.KEY_CATEGORIES_LIST}')
 
         if not category_list:
-            category_list = queryset.qs_categories_list()
+            category_list = queryset.qs_definition(settings.KEY_CATEGORIES_LIST)
             cache.set(
                 key=f'{settings.CACHE_KEY}{settings.KEY_CATEGORIES_LIST}',
                 value=category_list,
@@ -200,7 +200,7 @@ class CategoryListView(APIView):
         post_list = cache.get(f'{settings.CACHE_KEY}{settings.KEY_POSTS_LIST}')
 
         if not post_list:
-            post_list = queryset.qs_post_list()
+            post_list = queryset.qs_definition(settings.KEY_POSTS_LIST)
             cache.set(
                 key=f'{settings.CACHE_KEY}{settings.KEY_POSTS_LIST}',
                 value=post_list,
@@ -229,7 +229,7 @@ class VideoListView(APIView):
         video_list = cache.get(f'{settings.CACHE_KEY}{settings.KEY_VIDEOS_LIST}')
 
         if not video_list:
-            video_list = queryset.qs_videos_list()
+            video_list = queryset.qs_definition(settings.KEY_VIDEOS_LIST)
             cache.set(
                 key=f'{settings.CACHE_KEY}{settings.KEY_VIDEOS_LIST}',
                 value=video_list,
@@ -294,7 +294,7 @@ class TopPostsView(APIView):
         top_posts = cache.get(f'{settings.CACHE_KEY}{settings.KEY_TOP_POSTS}')
 
         if not top_posts:
-            top_posts = queryset.qs_top_posts()
+            top_posts = queryset.qs_definition(settings.KEY_TOP_POSTS)
             cache.set(
                 key=f'{settings.CACHE_KEY}{settings.KEY_TOP_POSTS}',
                 value=top_posts,
@@ -314,7 +314,7 @@ class LastPostsView(APIView):
         last_posts = cache.get(f'{settings.CACHE_KEY}{settings.KEY_LAST_POSTS}')
 
         if not last_posts:
-            last_posts = queryset.qs_last_posts()
+            last_posts = queryset.qs_definition(settings.KEY_LAST_POSTS)
             cache.set(
                 key=f'{settings.CACHE_KEY}{settings.KEY_LAST_POSTS}',
                 value=last_posts,
@@ -334,7 +334,7 @@ class DaysInCalendarView(APIView):
         days_with_post = cache.get(f'{settings.CACHE_KEY}{settings.KEY_POSTS_CALENDAR}{year}/{month}')
 
         if not days_with_post:
-            days_with_post = queryset.qs_days_posts_in_current_month(year, month)
+            days_with_post = queryset.qs_definition(settings.KEY_POSTS_CALENDAR, year=year, month=month)
             cache.set(
                 key=f'{settings.CACHE_KEY}{settings.KEY_POSTS_CALENDAR}{year}/{month}',
                 value=days_with_post,
@@ -352,7 +352,7 @@ class TopTagsView(APIView):
         tags = cache.get(f'{settings.CACHE_KEY}{settings.KEY_ALL_TAGS}')
 
         if not tags:
-            tags = queryset.qs_top_tags()
+            tags = queryset.qs_definition(settings.KEY_ALL_TAGS)
             cache.set(
                 key=f'{settings.CACHE_KEY}{settings.KEY_ALL_TAGS}',
                 value=tags,

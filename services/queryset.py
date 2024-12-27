@@ -5,11 +5,12 @@ from rest_framework.generics import get_object_or_404
 from taggit.models import Tag, TaggedItem
 
 from blog.models import Category, Comment, Post, Video
+from blog_by_me_DRF import settings
 from company.models import About
 from users.models import User
 
 
-def qs_post_list():
+def _qs_post_list():
     """Общий QS с записями блога"""
 
     return (
@@ -25,7 +26,7 @@ def qs_post_list():
     )
 
 
-def qs_post_detail(slug):
+def _qs_post_detail(slug):
     """Отдельная запись в блоге"""
 
     return get_object_or_404(
@@ -50,13 +51,13 @@ def qs_post_detail(slug):
     )
 
 
-def qs_categories_list():
+def _qs_categories_list():
     """QS со списком категорий"""
 
     return Category.objects.all()
 
 
-def qs_videos_list():
+def _qs_videos_list():
     """QS со всеми видеозаписями"""
 
     return (
@@ -78,7 +79,7 @@ def qs_videos_list():
     )
 
 
-def qs_about():
+def _qs_about():
     """
     Получение данных страницы 'О нас'
     """
@@ -86,13 +87,13 @@ def qs_about():
     return get_object_or_404(About)
 
 
-def qs_author_list():
+def _qs_author_list():
     """QS со всеми пользователями"""
 
     return User.objects.all().only('id', 'username', 'image', 'description')
 
 
-def qs_author_detail(pk):
+def _qs_author_detail(pk):
     """QS с отдельным автором"""
 
     return get_object_or_404(
@@ -116,7 +117,7 @@ def qs_author_detail(pk):
     )
 
 
-def qs_top_posts():
+def _qs_top_posts():
     """QS с тремя самыми популярными постами"""
 
     return (
@@ -127,7 +128,7 @@ def qs_top_posts():
     )
 
 
-def qs_last_posts():
+def _qs_last_posts():
     """QS с последними тремя добавленными постами"""
 
     return (
@@ -137,7 +138,7 @@ def qs_last_posts():
     )
 
 
-def qs_top_tags():
+def _qs_top_tags():
     """QS с десятью популярными тегами по количеству использования"""
 
     return Tag.objects.annotate(
@@ -145,9 +146,33 @@ def qs_top_tags():
     ).order_by('-npost')[:10]
 
 
-def qs_days_posts_in_current_month(year, month):
+def _qs_days_posts_in_current_month(year, month):
     """Дни публикаций в заданном месяце для календаря"""
 
     return Post.objects.filter(
         draft=False, publish__lte=timezone.now(), publish__year=year, publish__month=month
     ).dates('publish', 'day')
+
+
+def not_definite_qs(**kwargs):
+    """Вызов исключения если ключ для получения queryset не найден"""
+    raise Exception('Ключ для получения queryset не найден.')
+
+
+def qs_definition(qs_key, **kwargs):
+    """Определение необходимого запроса в БД по ключу"""
+    qs_keys = {
+        settings.KEY_POSTS_LIST: _qs_post_list,
+        settings.KEY_POST_DETAIL: _qs_post_detail,
+        settings.KEY_CATEGORIES_LIST: _qs_categories_list,
+        settings.KEY_VIDEOS_LIST: _qs_videos_list,
+        settings.KEY_ABOUT: _qs_about,
+        settings.KEY_AUTHORS_LIST: _qs_author_list,
+        settings.KEY_AUTHOR_DETAIL: _qs_author_detail,
+        settings.KEY_TOP_POSTS: _qs_top_posts,
+        settings.KEY_LAST_POSTS: _qs_last_posts,
+        settings.KEY_ALL_TAGS: _qs_top_tags,
+        settings.KEY_POSTS_CALENDAR: _qs_days_posts_in_current_month,
+    }
+    definite_qs = qs_keys.get(qs_key, not_definite_qs)
+    return definite_qs(**kwargs) if kwargs else definite_qs()
