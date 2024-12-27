@@ -1,23 +1,19 @@
-from django.core.cache import cache
 from django.utils.translation import gettext as _
 from rest_framework import status
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
-from blog_by_me_DRF.settings import CACHE_KEY, CACHE_TIMES, KEY_ABOUT
+from blog_by_me_DRF.settings import KEY_ABOUT
 from company.serializers import AboutSerializer, ContactSerializer
+from services.caching import get_cached_objects_or_queryset
 from services.company.send_mail import send
-from services.queryset import qs_definition
 
 
 class AboutView(APIView):
     """Вывод информации о компании"""
 
     def get(self, request):
-        about = cache.get(f'{CACHE_KEY}{KEY_ABOUT}')
-        if not about:
-            about = qs_definition(KEY_ABOUT)
-            cache.set(f'{CACHE_KEY}{KEY_ABOUT}', about, CACHE_TIMES[KEY_ABOUT])
+        about = get_cached_objects_or_queryset(KEY_ABOUT)
         serializer = AboutSerializer(about)
         return Response(serializer.data)
 

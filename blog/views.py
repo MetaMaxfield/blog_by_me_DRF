@@ -1,6 +1,5 @@
 import re
 
-from django.core.cache import cache
 from django.utils.translation import gettext as _
 from rest_framework import status
 from rest_framework.generics import get_object_or_404
@@ -18,7 +17,7 @@ from blog.serializers import (
     VideoListSerializer,
 )
 from blog_by_me_DRF import settings
-from services import queryset, rating, search
+from services import caching, rating, search
 from services.blog.paginator import (
     CursorPaginationForPostsInCategoryList,
     LimitOffsetPaginationForVideoList,
@@ -32,16 +31,7 @@ class PostsView(APIView):
     """Вывод постов блога"""
 
     def get(self, request):
-
-        object_list = cache.get(f'{settings.CACHE_KEY}{settings.KEY_POSTS_LIST}')
-
-        if not object_list:
-            object_list = queryset.qs_definition(settings.KEY_POSTS_LIST)
-            cache.set(
-                key=f'{settings.CACHE_KEY}{settings.KEY_POSTS_LIST}',
-                value=object_list,
-                timeout=settings.CACHE_TIMES[settings.KEY_POSTS_LIST],
-            )
+        object_list = caching.get_cached_objects_or_queryset(settings.KEY_POSTS_LIST)
 
         paginator = PageNumberPaginationForPosts()
         paginated_object_list = paginator.paginate_queryset(object_list, request)
@@ -62,15 +52,7 @@ class SearchPostView(APIView):
                 {'detail': _('Пожалуйста, введите текст для поиска постов.')}, status=status.HTTP_400_BAD_REQUEST
             )
 
-        post_list = cache.get(f'{settings.CACHE_KEY}{settings.KEY_POSTS_LIST}')
-
-        if not post_list:
-            post_list = queryset.qs_definition(settings.KEY_POSTS_LIST)
-            cache.set(
-                key=f'{settings.CACHE_KEY}{settings.KEY_POSTS_LIST}',
-                value=post_list,
-                timeout=settings.CACHE_TIMES[settings.KEY_POSTS_LIST],
-            )
+        post_list = caching.get_cached_objects_or_queryset(settings.KEY_POSTS_LIST)
 
         post_list = search.search_by_q(q, post_list, request.LANGUAGE_CODE)
 
@@ -95,15 +77,7 @@ class FilterDatePostsView(APIView):
         if not re.match(r'^\d{4}-\d{2}-\d{2}$', date_post):
             return Response({'detail': _('Задан неправильный формат даты')}, status=status.HTTP_400_BAD_REQUEST)
 
-        post_list = cache.get(f'{settings.CACHE_KEY}{settings.KEY_POSTS_LIST}')
-
-        if not post_list:
-            post_list = queryset.qs_definition(settings.KEY_POSTS_LIST)
-            cache.set(
-                key=f'{settings.CACHE_KEY}{settings.KEY_POSTS_LIST}',
-                value=post_list,
-                timeout=settings.CACHE_TIMES[settings.KEY_POSTS_LIST],
-            )
+        post_list = caching.get_cached_objects_or_queryset(settings.KEY_POSTS_LIST)
 
         post_list = search.search_by_date(post_list, date_post)
 
@@ -125,16 +99,7 @@ class FilterTagPostsView(APIView):
     """Вывод постов с фильтрацией по тегу"""
 
     def get(self, request, tag_slug):
-
-        post_list = cache.get(f'{settings.CACHE_KEY}{settings.KEY_POSTS_LIST}')
-
-        if not post_list:
-            post_list = queryset.qs_definition(settings.KEY_POSTS_LIST)
-            cache.set(
-                key=f'{settings.CACHE_KEY}{settings.KEY_POSTS_LIST}',
-                value=post_list,
-                timeout=settings.CACHE_TIMES[settings.KEY_POSTS_LIST],
-            )
+        post_list = caching.get_cached_objects_or_queryset(settings.KEY_POSTS_LIST)
 
         post_list = search.search_by_tag(post_list, tag_slug)
 
@@ -164,16 +129,7 @@ class PostDetailView(APIView):
     """Вывод отдельного поста"""
 
     def get(self, request, slug):
-
-        post = cache.get(f'{settings.CACHE_KEY}{settings.KEY_POST_DETAIL}{slug}')
-
-        if not post:
-            post = queryset.qs_definition(settings.KEY_POST_DETAIL, slug=slug)
-            cache.set(
-                key=f'{settings.CACHE_KEY}{settings.KEY_POST_DETAIL}{slug}',
-                value=post,
-                timeout=settings.CACHE_TIMES[settings.KEY_POST_DETAIL],
-            )
+        post = caching.get_cached_objects_or_queryset(settings.KEY_POST_DETAIL, slug=slug)
 
         post.user_rating = rating.has_user_rated_post(get_client_ip(request), post)
 
@@ -186,26 +142,8 @@ class CategoryListView(APIView):
     """Вывод списка категорий и постов к ним"""
 
     def get(self, request):
-
-        category_list = cache.get(f'{settings.CACHE_KEY}{settings.KEY_CATEGORIES_LIST}')
-
-        if not category_list:
-            category_list = queryset.qs_definition(settings.KEY_CATEGORIES_LIST)
-            cache.set(
-                key=f'{settings.CACHE_KEY}{settings.KEY_CATEGORIES_LIST}',
-                value=category_list,
-                timeout=settings.CACHE_TIMES[settings.KEY_CATEGORIES_LIST],
-            )
-
-        post_list = cache.get(f'{settings.CACHE_KEY}{settings.KEY_POSTS_LIST}')
-
-        if not post_list:
-            post_list = queryset.qs_definition(settings.KEY_POSTS_LIST)
-            cache.set(
-                key=f'{settings.CACHE_KEY}{settings.KEY_POSTS_LIST}',
-                value=post_list,
-                timeout=settings.CACHE_TIMES[settings.KEY_POSTS_LIST],
-            )
+        category_list = caching.get_cached_objects_or_queryset(settings.KEY_CATEGORIES_LIST)
+        post_list = caching.get_cached_objects_or_queryset(settings.KEY_POSTS_LIST)
 
         paginator = CursorPaginationForPostsInCategoryList()
         paginated_post_list = paginator.paginate_queryset(post_list, request)
@@ -225,16 +163,7 @@ class VideoListView(APIView):
     """Вывод всех видеозаписей"""
 
     def get(self, request):
-
-        video_list = cache.get(f'{settings.CACHE_KEY}{settings.KEY_VIDEOS_LIST}')
-
-        if not video_list:
-            video_list = queryset.qs_definition(settings.KEY_VIDEOS_LIST)
-            cache.set(
-                key=f'{settings.CACHE_KEY}{settings.KEY_VIDEOS_LIST}',
-                value=video_list,
-                timeout=settings.CACHE_TIMES[settings.KEY_VIDEOS_LIST],
-            )
+        video_list = caching.get_cached_objects_or_queryset(settings.KEY_VIDEOS_LIST)
 
         paginator = LimitOffsetPaginationForVideoList()
         paginated_video_list = paginator.paginate_queryset(video_list, request)
@@ -290,16 +219,7 @@ class TopPostsView(APIView):
     """Вывод трёх постов с наивысшим рейтингом"""
 
     def get(self, request):
-
-        top_posts = cache.get(f'{settings.CACHE_KEY}{settings.KEY_TOP_POSTS}')
-
-        if not top_posts:
-            top_posts = queryset.qs_definition(settings.KEY_TOP_POSTS)
-            cache.set(
-                key=f'{settings.CACHE_KEY}{settings.KEY_TOP_POSTS}',
-                value=top_posts,
-                timeout=settings.CACHE_TIMES[settings.KEY_TOP_POSTS],
-            )
+        top_posts = caching.get_cached_objects_or_queryset(settings.KEY_TOP_POSTS)
 
         serializer = PostsSerializer(top_posts, many=True, fields=('title', 'body', 'url'))
 
@@ -310,16 +230,7 @@ class LastPostsView(APIView):
     """Вывод трех последних опубликованных постов"""
 
     def get(self, request):
-
-        last_posts = cache.get(f'{settings.CACHE_KEY}{settings.KEY_LAST_POSTS}')
-
-        if not last_posts:
-            last_posts = queryset.qs_definition(settings.KEY_LAST_POSTS)
-            cache.set(
-                key=f'{settings.CACHE_KEY}{settings.KEY_LAST_POSTS}',
-                value=last_posts,
-                timeout=settings.CACHE_TIMES[settings.KEY_LAST_POSTS],
-            )
+        last_posts = caching.get_cached_objects_or_queryset(settings.KEY_LAST_POSTS)
 
         serializer = PostsSerializer(last_posts, many=True, fields=('image', 'title', 'body', 'url'))
 
@@ -330,16 +241,7 @@ class DaysInCalendarView(APIView):
     """Вывод дат публикации постов для заданного месяца"""
 
     def get(self, request, year, month):
-
-        days_with_post = cache.get(f'{settings.CACHE_KEY}{settings.KEY_POSTS_CALENDAR}{year}/{month}')
-
-        if not days_with_post:
-            days_with_post = queryset.qs_definition(settings.KEY_POSTS_CALENDAR, year=year, month=month)
-            cache.set(
-                key=f'{settings.CACHE_KEY}{settings.KEY_POSTS_CALENDAR}{year}/{month}',
-                value=days_with_post,
-                timeout=settings.CACHE_TIMES[settings.KEY_POSTS_CALENDAR],
-            )
+        days_with_post = caching.get_cached_objects_or_queryset(settings.KEY_POSTS_CALENDAR, year=year, month=month)
 
         return Response(days_with_post)
 
@@ -348,16 +250,7 @@ class TopTagsView(APIView):
     """Вывод десяти самых популярных тегов и количества постов к ним"""
 
     def get(self, request):
-
-        tags = cache.get(f'{settings.CACHE_KEY}{settings.KEY_ALL_TAGS}')
-
-        if not tags:
-            tags = queryset.qs_definition(settings.KEY_ALL_TAGS)
-            cache.set(
-                key=f'{settings.CACHE_KEY}{settings.KEY_ALL_TAGS}',
-                value=tags,
-                timeout=settings.CACHE_TIMES[settings.KEY_ALL_TAGS],
-            )
+        tags = caching.get_cached_objects_or_queryset(settings.KEY_ALL_TAGS)
 
         serializer = TopTagsSerializer(tags, many=True)
 
