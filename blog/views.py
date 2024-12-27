@@ -504,7 +504,7 @@ class DaysInCalendarView(APIView):
 
     def get(self, request, year, month):
 
-        days_with_post = cache.get(f'{settings.CACHE_KEY}{settings.KEY_POSTS_CALENDAR}')
+        days_with_post = cache.get(f'{settings.CACHE_KEY}{settings.KEY_POSTS_CALENDAR}{year}/{month}')
 
         if not days_with_post:
 
@@ -513,7 +513,7 @@ class DaysInCalendarView(APIView):
             ).dates('publish', 'day')
 
             cache.set(
-                key=f'{settings.CACHE_KEY}{settings.KEY_POSTS_CALENDAR}',
+                key=f'{settings.CACHE_KEY}{settings.KEY_POSTS_CALENDAR}{year}/{month}',
                 value=days_with_post,
                 timeout=settings.CACHE_TIMES[settings.KEY_POSTS_CALENDAR],
             )
