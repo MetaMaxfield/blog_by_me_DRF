@@ -1,17 +1,13 @@
 import re
 
 from django.core.cache import cache
-from django.db.models import Count, Prefetch, Q, Sum
-from django.db.models.functions import Coalesce
-from django.utils import timezone
 from django.utils.translation import gettext as _
 from rest_framework import status
 from rest_framework.generics import get_object_or_404
 from rest_framework.response import Response
 from rest_framework.views import APIView
-from taggit.models import Tag, TaggedItem
 
-from blog.models import Category, Comment, Mark, Post, Rating, Video
+from blog.models import Mark, Rating
 from blog.serializers import (
     AddCommentSerializer,
     AddRatingSerializer,
@@ -22,7 +18,7 @@ from blog.serializers import (
     VideoListSerializer,
 )
 from blog_by_me_DRF import settings
-from services import rating, search
+from services import queryset, rating, search
 from services.blog.paginator import (
     CursorPaginationForPostsInCategoryList,
     LimitOffsetPaginationForVideoList,
@@ -40,21 +36,7 @@ class PostsView(APIView):
         object_list = cache.get(f'{settings.CACHE_KEY}{settings.KEY_POSTS_LIST}')
 
         if not object_list:
-
-            object_list = (
-                Post.objects.filter(draft=False, publish__lte=timezone.now())
-                .select_related('category')
-                .prefetch_related(
-                    Prefetch(
-                        'tagged_items', queryset=TaggedItem.objects.select_related('tag'), to_attr='prefetched_tags'
-                    ),
-                    Prefetch('author', User.objects.only('id', 'username')),
-                )
-                .defer('video', 'created', 'updated', 'draft')
-                .annotate(ncomments=Count('comments'))
-                .order_by('-publish', '-id')
-            )
-
+            object_list = queryset.qs_post_list()
             cache.set(
                 key=f'{settings.CACHE_KEY}{settings.KEY_POSTS_LIST}',
                 value=object_list,
@@ -83,20 +65,7 @@ class SearchPostView(APIView):
         post_list = cache.get(f'{settings.CACHE_KEY}{settings.KEY_POSTS_LIST}')
 
         if not post_list:
-
-            post_list = (
-                Post.objects.filter(draft=False, publish__lte=timezone.now())
-                .select_related('category')
-                .prefetch_related(
-                    Prefetch(
-                        'tagged_items', queryset=TaggedItem.objects.select_related('tag'), to_attr='prefetched_tags'
-                    ),
-                    Prefetch('author', User.objects.only('id', 'username')),
-                )
-                .defer('video', 'created', 'updated', 'draft')
-                .annotate(ncomments=Count('comments'))
-            )
-
+            post_list = queryset.qs_post_list()
             cache.set(
                 key=f'{settings.CACHE_KEY}{settings.KEY_POSTS_LIST}',
                 value=post_list,
@@ -129,21 +98,7 @@ class FilterDatePostsView(APIView):
         post_list = cache.get(f'{settings.CACHE_KEY}{settings.KEY_POSTS_LIST}')
 
         if not post_list:
-
-            post_list = (
-                Post.objects.filter(draft=False, publish__lte=timezone.now())
-                .select_related('category')
-                .prefetch_related(
-                    Prefetch(
-                        'tagged_items', queryset=TaggedItem.objects.select_related('tag'), to_attr='prefetched_tags'
-                    ),
-                    Prefetch('author', User.objects.only('id', 'username')),
-                )
-                .defer('video', 'created', 'updated', 'draft')
-                .annotate(ncomments=Count('comments'))
-                .order_by('-publish', '-id')
-            )
-
+            post_list = queryset.qs_post_list()
             cache.set(
                 key=f'{settings.CACHE_KEY}{settings.KEY_POSTS_LIST}',
                 value=post_list,
@@ -174,21 +129,7 @@ class FilterTagPostsView(APIView):
         post_list = cache.get(f'{settings.CACHE_KEY}{settings.KEY_POSTS_LIST}')
 
         if not post_list:
-
-            post_list = (
-                Post.objects.filter(draft=False, publish__lte=timezone.now())
-                .select_related('category')
-                .prefetch_related(
-                    Prefetch(
-                        'tagged_items', queryset=TaggedItem.objects.select_related('tag'), to_attr='prefetched_tags'
-                    ),
-                    Prefetch('author', User.objects.only('id', 'username')),
-                )
-                .defer('video', 'created', 'updated', 'draft')
-                .annotate(ncomments=Count('comments'))
-                .order_by('-publish', '-id')
-            )
-
+            post_list = queryset.qs_post_list()
             cache.set(
                 key=f'{settings.CACHE_KEY}{settings.KEY_POSTS_LIST}',
                 value=post_list,
@@ -227,29 +168,7 @@ class PostDetailView(APIView):
         post = cache.get(f'{settings.CACHE_KEY}{settings.KEY_POST_DETAIL}{slug}')
 
         if not post:
-            post = get_object_or_404(
-                Post.objects.filter(draft=False, publish__lte=timezone.now())
-                .prefetch_related(
-                    Prefetch('author', User.objects.only('id', 'username')),
-                    Prefetch(
-                        'comments',
-                        Comment.objects.filter(parent=None)
-                        .prefetch_related(
-                            Prefetch(
-                                'children', Comment.objects.defer('email', 'active'), to_attr='prefetched_comments2'
-                            )
-                        )
-                        .defer('email', 'active'),
-                        to_attr='prefetched_comments1',
-                    ),
-                )
-                .defer('draft')
-                .annotate(
-                    ncomments=Count('comments'),
-                ),
-                url=slug,
-            )
-
+            post = queryset.qs_post_detail(slug)
             cache.set(
                 key=f'{settings.CACHE_KEY}{settings.KEY_POST_DETAIL}{slug}',
                 value=post,
@@ -271,7 +190,7 @@ class CategoryListView(APIView):
         category_list = cache.get(f'{settings.CACHE_KEY}{settings.KEY_CATEGORIES_LIST}')
 
         if not category_list:
-            category_list = Category.objects.all()
+            category_list = queryset.qs_categories_list()
             cache.set(
                 key=f'{settings.CACHE_KEY}{settings.KEY_CATEGORIES_LIST}',
                 value=category_list,
@@ -281,21 +200,7 @@ class CategoryListView(APIView):
         post_list = cache.get(f'{settings.CACHE_KEY}{settings.KEY_POSTS_LIST}')
 
         if not post_list:
-
-            post_list = (
-                Post.objects.filter(draft=False, publish__lte=timezone.now())
-                .select_related('category')
-                .prefetch_related(
-                    Prefetch(
-                        'tagged_items', queryset=TaggedItem.objects.select_related('tag'), to_attr='prefetched_tags'
-                    ),
-                    Prefetch('author', User.objects.only('id', 'username')),
-                )
-                .defer('video', 'created', 'updated', 'draft')
-                .annotate(ncomments=Count('comments'))
-                .order_by('-publish', '-id')
-            )
-
+            post_list = queryset.qs_post_list()
             cache.set(
                 key=f'{settings.CACHE_KEY}{settings.KEY_POSTS_LIST}',
                 value=post_list,
@@ -324,25 +229,7 @@ class VideoListView(APIView):
         video_list = cache.get(f'{settings.CACHE_KEY}{settings.KEY_VIDEOS_LIST}')
 
         if not video_list:
-
-            video_list = (
-                Video.objects.filter(post_video__draft=False, post_video__publish__lte=timezone.now())
-                .select_related('post_video')
-                .prefetch_related(
-                    Prefetch('post_video__category', Category.objects.only('id', 'name')),
-                    Prefetch('post_video__author', User.objects.only('id', 'username')),
-                    Prefetch(
-                        'post_video__tagged_items',
-                        queryset=TaggedItem.objects.select_related('tag'),
-                        to_attr='prefetched_tags',
-                    ),
-                )
-                .annotate(
-                    ncomments=Count('post_video__comments'),
-                )
-                .order_by('-create_at')
-            )
-
+            video_list = queryset.qs_videos_list()
             cache.set(
                 key=f'{settings.CACHE_KEY}{settings.KEY_VIDEOS_LIST}',
                 value=video_list,
@@ -407,14 +294,7 @@ class TopPostsView(APIView):
         top_posts = cache.get(f'{settings.CACHE_KEY}{settings.KEY_TOP_POSTS}')
 
         if not top_posts:
-
-            top_posts = (
-                Post.objects.filter(draft=False, publish__lte=timezone.now())
-                .only('title', 'body', 'url')
-                .alias(total_likes=Coalesce(Sum('rating_post__mark__value'), 0))
-                .order_by('-total_likes')[:3]
-            )
-
+            top_posts = queryset.qs_top_posts()
             cache.set(
                 key=f'{settings.CACHE_KEY}{settings.KEY_TOP_POSTS}',
                 value=top_posts,
@@ -434,13 +314,7 @@ class LastPostsView(APIView):
         last_posts = cache.get(f'{settings.CACHE_KEY}{settings.KEY_LAST_POSTS}')
 
         if not last_posts:
-
-            last_posts = (
-                Post.objects.filter(draft=False, publish__lte=timezone.now())
-                .only('image', 'title', 'body', 'url')
-                .order_by('-publish', '-id')[:3]
-            )
-
+            last_posts = queryset.qs_last_posts()
             cache.set(
                 key=f'{settings.CACHE_KEY}{settings.KEY_LAST_POSTS}',
                 value=last_posts,
@@ -460,11 +334,7 @@ class DaysInCalendarView(APIView):
         days_with_post = cache.get(f'{settings.CACHE_KEY}{settings.KEY_POSTS_CALENDAR}{year}/{month}')
 
         if not days_with_post:
-
-            days_with_post = Post.objects.filter(
-                draft=False, publish__lte=timezone.now(), publish__year=year, publish__month=month
-            ).dates('publish', 'day')
-
+            days_with_post = queryset.qs_days_posts_in_current_month(year, month)
             cache.set(
                 key=f'{settings.CACHE_KEY}{settings.KEY_POSTS_CALENDAR}{year}/{month}',
                 value=days_with_post,
@@ -482,11 +352,7 @@ class TopTagsView(APIView):
         tags = cache.get(f'{settings.CACHE_KEY}{settings.KEY_ALL_TAGS}')
 
         if not tags:
-
-            tags = Tag.objects.annotate(
-                npost=Count('post_tags', filter=Q(post_tags__draft=False, post_tags__publish__lte=timezone.now()))
-            ).order_by('-npost')[:10]
-
+            tags = queryset.qs_top_tags()
             cache.set(
                 key=f'{settings.CACHE_KEY}{settings.KEY_ALL_TAGS}',
                 value=tags,
