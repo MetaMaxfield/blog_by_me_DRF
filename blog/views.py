@@ -2,11 +2,10 @@ import re
 
 from django.utils.translation import gettext as _
 from rest_framework import status
-from rest_framework.generics import get_object_or_404
+from rest_framework.exceptions import ValidationError
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
-from blog.models import Mark, Rating
 from blog.serializers import (
     AddCommentSerializer,
     AddRatingSerializer,
@@ -24,7 +23,7 @@ from services.blog.paginator import (
     PageNumberPaginationForPosts,
 )
 from services.client_ip import get_client_ip
-from users.models import User
+from services.rating import ServiceUserRating
 
 
 class PostsView(APIView):
@@ -176,37 +175,29 @@ class VideoListView(APIView):
 class AddRatingView(APIView):
     """Добавление рейтинга к посту"""
 
-    RATING_UPDATE_MESSAGE = _('Рейтинг успешно обновлен.')
-    RATING_CREATE_MESSAGE = _('Рейтинг успешно добавлен.')
-
     def put(self, request):
         # Получаем IP пользователя
         ip = get_client_ip(request)
 
-        # Пытаемся найти существующий рейтинг для поста и пользователя по IP
-        # Если рейтинг найден, сериализуем его для обновления
-        try:
-            rating = Rating.objects.get(ip=ip, post=request.data['post'])
-            rating_serializer = AddRatingSerializer(instance=rating, data=request.data)
-            status_code, message = status.HTTP_200_OK, self.RATING_UPDATE_MESSAGE
+        # Создаём объект класса для работы с рейтингом
+        service_rating = ServiceUserRating(ip, post_id=request.data['post'], mark_id=request.data['mark'])
 
-        # Если рейтинга нет, создаем новый сериализатор для нового объекта рейтинга
-        except Rating.DoesNotExist:
-            rating_serializer = AddRatingSerializer(data=request.data)
-            status_code, message = status.HTTP_201_CREATED, self.RATING_CREATE_MESSAGE
+        # Получаем текущий рейтинг пользователя для указанного IP-адреса и поста,
+        # если он существует в базе данных. В противном случае возвращает None
+        existing_rating = service_rating.existing_rating
+
+        # Сериализуем рейтинг для добавления/обновления
+        rating_serializer = AddRatingSerializer(instance=existing_rating, data=request.data)
 
         if rating_serializer.is_valid():
 
-            mark = get_object_or_404(Mark, id=request.data['mark'])
-            author = get_object_or_404(User, post_author__id=request.data['post'])
-
-            # Если рейтинг обновляется, убираем старое значение
-            if message == self.RATING_UPDATE_MESSAGE:
-                author.user_rating -= rating.mark.value
-
-            # Прибавляем новое значение рейтинга и сохраняем
-            author.user_rating += mark.value
-            author.save()
+            try:
+                # Обновляем рейтинг пользователя на основе выбранной оценки
+                # и получаем соответствующее сообщение и статусный код для совершённого действия
+                message, status_code = service_rating.update_author_rating_with_return_message_and_status_code()
+            except ValidationError as error:
+                # Возвращаем ошибку если данные переданные в сериализатор не прошли валидацию
+                return Response(error, status=status.HTTP_400_BAD_REQUEST)
 
             rating_serializer.save(ip=ip)
 
