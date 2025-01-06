@@ -1,5 +1,3 @@
-import re
-
 from django.utils.translation import gettext as _
 from rest_framework import status
 from rest_framework.response import Response
@@ -16,6 +14,7 @@ from blog.serializers import (
 )
 from blog_by_me_DRF import settings
 from services import caching, rating, search
+from services.blog import validators
 from services.blog.paginator import (
     CursorPaginationForPostsInCategoryList,
     LimitOffsetPaginationForVideoList,
@@ -43,12 +42,8 @@ class SearchPostView(APIView):
     """Вывод результатов поиска постов блога"""
 
     def get(self, request):
-
         q = request.query_params.get('q')
-        if not q:
-            return Response(
-                {'detail': _('Пожалуйста, введите текст для поиска постов.')}, status=status.HTTP_400_BAD_REQUEST
-            )
+        validators.validate_q_param(q)
 
         post_list = caching.get_cached_objects_or_queryset(settings.KEY_POSTS_LIST)
 
@@ -71,9 +66,7 @@ class FilterDatePostsView(APIView):
     """Вывод постов с фильтрацией по дате"""
 
     def get(self, request, date_post):
-
-        if not re.match(r'^\d{4}-\d{2}-\d{2}$', date_post):
-            return Response({'detail': _('Задан неправильный формат даты')}, status=status.HTTP_400_BAD_REQUEST)
+        validators.validate_date_format(date_post)
 
         post_list = caching.get_cached_objects_or_queryset(settings.KEY_POSTS_LIST)
 
