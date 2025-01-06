@@ -1,23 +1,8 @@
 from django.contrib.auth.models import AbstractUser
-from django.core import validators
 from django.db import models
-from django.utils.deconstruct import deconstructible
 from django.utils.translation import gettext as _
 
-
-@deconstructible
-class ImprovedUnicodeUsernameValidator(validators.RegexValidator):
-    """
-    Расширенный валидатор для поля "username" модели "User"
-    при создании пользователя, где дополнительно разрешены пробелы
-    """
-
-    regex = r'^[ \w.@+-]+\Z'
-    message = (
-        'Введите допустимое имя пользователя. Это значение может содержать только буквы, числа, пробелы и @/./+/-/_.'
-    )
-    flags = 0
-
+from services.users.validator import ImprovedUnicodeUsernameValidator
 
 username_validator = ImprovedUnicodeUsernameValidator()
 
