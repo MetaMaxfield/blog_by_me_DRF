@@ -2,7 +2,6 @@ import re
 
 from django.utils.translation import gettext as _
 from rest_framework import status
-from rest_framework.exceptions import ValidationError
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
@@ -191,13 +190,9 @@ class AddRatingView(APIView):
 
         if rating_serializer.is_valid():
 
-            try:
-                # Обновляем рейтинг пользователя на основе выбранной оценки
-                # и получаем соответствующее сообщение и статусный код для совершённого действия
-                message, status_code = service_rating.update_author_rating_with_return_message_and_status_code()
-            except ValidationError as error:
-                # Возвращаем ошибку если данные переданные в сериализатор не прошли валидацию
-                return Response(error, status=status.HTTP_400_BAD_REQUEST)
+            # Обновляем рейтинг пользователя на основе выбранной оценки
+            # и получаем соответствующее сообщение и статусный код для совершённого действия
+            message, status_code = service_rating.update_author_rating_with_return_message_and_status_code()
 
             rating_serializer.save(ip=ip)
 
