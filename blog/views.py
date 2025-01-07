@@ -15,7 +15,7 @@ from blog.serializers import (
 from blog_by_me_DRF import settings
 from services import caching, rating, search
 from services.blog import validators
-from services.blog.paginator import (
+from services.blog.paginators import (
     CursorPaginationForPostsInCategoryList,
     LimitOffsetPaginationForVideoList,
     PageNumberPaginationForPosts,
