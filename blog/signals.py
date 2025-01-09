@@ -6,7 +6,7 @@ from blog.models import Post, Video
 from blog_by_me_DRF import settings
 
 
-def _clear_cache_post(instance):
+def _clear_cache_post(instance: Post) -> None:
     """Функция для очистки кэша с данными постов"""
 
     # Список ключей для кэширования объектов, которые нужно очистить
