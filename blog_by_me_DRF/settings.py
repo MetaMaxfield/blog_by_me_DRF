@@ -348,3 +348,7 @@ TITLE_AUTHOR_GROUP = _('Автор')
 # Названия оценок для рейтинга постов
 TITLE_LIKE_MARK = 'Лайк'
 TITLE_DISLIKE_MARK = 'Дизлайк'
+
+
+# Настройка библиотеки "django-taggit" для игнорирования регистра в тегах
+TAGGIT_CASE_INSENSITIVE = True
