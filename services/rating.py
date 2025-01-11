@@ -85,7 +85,7 @@ class ServiceUserRating:
             mark = Mark.objects.get(id=self.mark_id)
             return mark
         except Mark.DoesNotExist:
-            raise ValidationError({'detail': 'Оценка с указанным id не найдена.'})
+            raise ValidationError({'detail': _('Оценка с указанным id не найдена.')})
 
     def _get_author(self) -> User:
         """
@@ -96,7 +96,7 @@ class ServiceUserRating:
             author = User.objects.get(post_author__id=self.post_id)
             return author
         except User.DoesNotExist:
-            raise ValidationError({'detail': 'Пользователь, связанный с указанным id поста, не найден.'})
+            raise ValidationError({'detail': _('Пользователь, связанный с указанным id поста, не найден.')})
 
     def _get_message_and_status_code(self) -> tuple[str, int]:
         """
