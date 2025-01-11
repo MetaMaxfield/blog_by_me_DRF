@@ -406,5 +406,9 @@ TITLE_LIKE_MARK = 'Лайк'
 TITLE_DISLIKE_MARK = 'Дизлайк'
 
 
+# Настройка библиотеки "django-taggit" для игнорирования регистра в тегах
+TAGGIT_CASE_INSENSITIVE = True
+
+
 # Общая аннотация для объектов, наследуемых от базовой модели Django
 ObjectModel = TypeVar('ObjectModel', bound=Model)
