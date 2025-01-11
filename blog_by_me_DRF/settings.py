@@ -12,7 +12,9 @@ https://docs.djangoproject.com/en/4.2/ref/settings/
 
 import os
 from pathlib import Path
+from typing import TypeVar
 
+from django.db.models import Model
 from django.utils.translation import gettext_lazy as _
 from dotenv import load_dotenv
 
@@ -402,3 +404,7 @@ TITLE_AUTHOR_GROUP = _('Автор')
 # Названия оценок для рейтинга постов
 TITLE_LIKE_MARK = 'Лайк'
 TITLE_DISLIKE_MARK = 'Дизлайк'
+
+
+# Общая аннотация для объектов, наследуемых от базовой модели Django
+ObjectModel = TypeVar('ObjectModel', bound=Model)

@@ -3,7 +3,7 @@ from django.core.mail import send_mail
 from blog_by_me_DRF.settings import EMAIL_HOST_USER
 
 
-def send(user_mail):
+def send(user_mail: str) -> None:
     """Отправление электронного письма при получении обратной связи через форму"""
     send_mail(
         'Запрос к администрации веб-приложения MAXFIELD.',

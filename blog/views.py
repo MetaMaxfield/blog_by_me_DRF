@@ -1,25 +1,13 @@
 from django.utils.translation import gettext as _
 from rest_framework import status
+from rest_framework.request import Request
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
-from blog.serializers import (
-    AddCommentSerializer,
-    AddRatingSerializer,
-    CategoryListSerializer,
-    PostDetailSerializer,
-    PostsSerializer,
-    TopTagsSerializer,
-    VideoListSerializer,
-)
+from blog import serializers
 from blog_by_me_DRF import settings
 from services import caching, rating, search
-from services.blog import validators
-from services.blog.paginator import (
-    CursorPaginationForPostsInCategoryList,
-    LimitOffsetPaginationForVideoList,
-    PageNumberPaginationForPosts,
-)
+from services.blog import paginators, validators
 from services.client_ip import get_client_ip
 from services.rating import ServiceUserRating
 
@@ -27,89 +15,74 @@ from services.rating import ServiceUserRating
 class PostsView(APIView):
     """Вывод постов блога"""
 
-    def get(self, request):
+    def get(self, request: Request) -> Response:
         object_list = caching.get_cached_objects_or_queryset(settings.KEY_POSTS_LIST)
-
-        paginator = PageNumberPaginationForPosts()
+        paginator = paginators.PageNumberPaginationForPosts()
         paginated_object_list = paginator.paginate_queryset(object_list, request)
-
-        serializer = PostsSerializer(paginated_object_list, many=True)
-
+        serializer = serializers.PostsSerializer(paginated_object_list, many=True)
         return paginator.get_paginated_response(serializer.data)
 
 
 class SearchPostView(APIView):
     """Вывод результатов поиска постов блога"""
 
-    def get(self, request):
+    def get(self, request: Request) -> Response:
         q = request.query_params.get('q')
         validators.validate_q_param(q)
 
         post_list = caching.get_cached_objects_or_queryset(settings.KEY_POSTS_LIST)
-
         post_list = search.search_by_q(q, post_list, request.LANGUAGE_CODE)
-
         if not post_list.exists():
             return Response(
                 {'detail': _('Посты по запросу "{q}" не найдены').format(q=q)}, status=status.HTTP_204_NO_CONTENT
             )
 
-        paginator = PageNumberPaginationForPosts()
+        paginator = paginators.PageNumberPaginationForPosts()
         paginated_post_list = paginator.paginate_queryset(post_list, request)
-
-        serializer = PostsSerializer(paginated_post_list, many=True)
-
+        serializer = serializers.PostsSerializer(paginated_post_list, many=True)
         return paginator.get_paginated_response(serializer.data)
 
 
 class FilterDatePostsView(APIView):
     """Вывод постов с фильтрацией по дате"""
 
-    def get(self, request, date_post):
+    def get(self, request: Request, date_post: str) -> Response:
         validators.validate_date_format(date_post)
 
         post_list = caching.get_cached_objects_or_queryset(settings.KEY_POSTS_LIST)
-
         post_list = search.search_by_date(post_list, date_post)
-
         if not post_list.exists():
             return Response(
                 {'detail': _('Посты с датой "{date_post}" не найдены').format(date_post=date_post)},
                 status=status.HTTP_204_NO_CONTENT,
             )
 
-        paginator = PageNumberPaginationForPosts()
+        paginator = paginators.PageNumberPaginationForPosts()
         paginated_post_list = paginator.paginate_queryset(post_list, request)
-
-        serializer = PostsSerializer(paginated_post_list, many=True)
-
+        serializer = serializers.PostsSerializer(paginated_post_list, many=True)
         return paginator.get_paginated_response(serializer.data)
 
 
 class FilterTagPostsView(APIView):
     """Вывод постов с фильтрацией по тегу"""
 
-    def get(self, request, tag_slug):
+    def get(self, request: Request, tag_slug: str) -> Response:
         post_list = caching.get_cached_objects_or_queryset(settings.KEY_POSTS_LIST)
-
         post_list = search.search_by_tag(post_list, tag_slug)
-
         if not post_list.exists():
             return Response({'detail': _('Посты с заданным тегом не найдены')}, status=status.HTTP_204_NO_CONTENT)
 
-        paginator = PageNumberPaginationForPosts()
+        paginator = paginators.PageNumberPaginationForPosts()
         paginated_post_list = paginator.paginate_queryset(post_list, request)
-
-        serializer = PostsSerializer(paginated_post_list, many=True)
-
+        serializer = serializers.PostsSerializer(paginated_post_list, many=True)
         return paginator.get_paginated_response(serializer.data)
 
 
 class AddCommentView(APIView):
     """Добавление комментария к посту"""
 
-    def post(self, request):
-        comment = AddCommentSerializer(data=request.data)
+    def post(self, request: Request) -> Response:
+        comment = serializers.AddCommentSerializer(data=request.data)
         if comment.is_valid():
             comment.save()
             return Response({'message': _('Комментарий успешно добавлен.')}, status=status.HTTP_201_CREATED)
@@ -119,29 +92,25 @@ class AddCommentView(APIView):
 class PostDetailView(APIView):
     """Вывод отдельного поста"""
 
-    def get(self, request, slug):
+    def get(self, request: Request, slug: str) -> Response:
         post = caching.get_cached_objects_or_queryset(settings.KEY_POST_DETAIL, slug=slug)
-
         post.user_rating = rating.has_user_rated_post(get_client_ip(request), post)
-
-        serializer = PostDetailSerializer(post)
-
+        serializer = serializers.PostDetailSerializer(post)
         return Response(serializer.data)
 
 
 class CategoryListView(APIView):
     """Вывод списка категорий и постов к ним"""
 
-    def get(self, request):
+    def get(self, request: Request) -> Response:
         category_list = caching.get_cached_objects_or_queryset(settings.KEY_CATEGORIES_LIST)
         post_list = caching.get_cached_objects_or_queryset(settings.KEY_POSTS_LIST)
 
-        paginator = CursorPaginationForPostsInCategoryList()
+        paginator = paginators.CursorPaginationForPostsInCategoryList()
         paginated_post_list = paginator.paginate_queryset(post_list, request)
 
-        category_serializer = CategoryListSerializer(category_list, many=True)
-        posts_serializer = PostsSerializer(paginated_post_list, many=True)
-
+        category_serializer = serializers.CategoryListSerializer(category_list, many=True)
+        posts_serializer = serializers.PostsSerializer(paginated_post_list, many=True)
         return paginator.get_paginated_response(
             {
                 'category_list': category_serializer.data,
@@ -153,21 +122,18 @@ class CategoryListView(APIView):
 class VideoListView(APIView):
     """Вывод всех видеозаписей"""
 
-    def get(self, request):
+    def get(self, request: Request) -> Response:
         video_list = caching.get_cached_objects_or_queryset(settings.KEY_VIDEOS_LIST)
-
-        paginator = LimitOffsetPaginationForVideoList()
+        paginator = paginators.LimitOffsetPaginationForVideoList()
         paginated_video_list = paginator.paginate_queryset(video_list, request)
-
-        videos_serializer = VideoListSerializer(paginated_video_list, many=True)
-
+        videos_serializer = serializers.VideoListSerializer(paginated_video_list, many=True)
         return paginator.get_paginated_response(videos_serializer.data)
 
 
 class AddRatingView(APIView):
     """Добавление рейтинга к посту"""
 
-    def put(self, request):
+    def put(self, request: Request) -> Response:
         # Получаем IP пользователя
         ip = get_client_ip(request)
 
@@ -179,7 +145,7 @@ class AddRatingView(APIView):
         existing_rating = service_rating.existing_rating
 
         # Сериализуем рейтинг для добавления/обновления
-        rating_serializer = AddRatingSerializer(instance=existing_rating, data=request.data)
+        rating_serializer = serializers.AddRatingSerializer(instance=existing_rating, data=request.data)
 
         if rating_serializer.is_valid():
 
@@ -197,40 +163,33 @@ class AddRatingView(APIView):
 class TopPostsView(APIView):
     """Вывод трёх постов с наивысшим рейтингом"""
 
-    def get(self, request):
+    def get(self, request: Request) -> Response:
         top_posts = caching.get_cached_objects_or_queryset(settings.KEY_TOP_POSTS)
-
-        serializer = PostsSerializer(top_posts, many=True, fields=('title', 'body', 'url'))
-
+        serializer = serializers.PostsSerializer(top_posts, many=True, fields=('title', 'body', 'url'))
         return Response(serializer.data)
 
 
 class LastPostsView(APIView):
     """Вывод трех последних опубликованных постов"""
 
-    def get(self, request):
+    def get(self, request: Request) -> Response:
         last_posts = caching.get_cached_objects_or_queryset(settings.KEY_LAST_POSTS)
-
-        serializer = PostsSerializer(last_posts, many=True, fields=('image', 'title', 'body', 'url'))
-
+        serializer = serializers.PostsSerializer(last_posts, many=True, fields=('image', 'title', 'body', 'url'))
         return Response(serializer.data)
 
 
 class DaysInCalendarView(APIView):
     """Вывод дат публикации постов для заданного месяца"""
 
-    def get(self, request, year, month):
+    def get(self, request: Request, year: int, month: int) -> Response:
         days_with_post = caching.get_cached_objects_or_queryset(settings.KEY_POSTS_CALENDAR, year=year, month=month)
-
         return Response(days_with_post)
 
 
 class TopTagsView(APIView):
     """Вывод десяти самых популярных тегов и количества постов к ним"""
 
-    def get(self, request):
+    def get(self, request: Request) -> Response:
         tags = caching.get_cached_objects_or_queryset(settings.KEY_ALL_TAGS)
-
-        serializer = TopTagsSerializer(tags, many=True)
-
+        serializer = serializers.TopTagsSerializer(tags, many=True)
         return Response(serializer.data)
