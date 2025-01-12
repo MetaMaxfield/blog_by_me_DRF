@@ -1,6 +1,6 @@
+from django.core.exceptions import ValidationError
 from django.core.validators import FileExtensionValidator
 from django.db import models
-from django.urls import reverse
 from django.utils import timezone
 from taggit.managers import TaggableManager
 
@@ -44,9 +44,9 @@ class Post(models.Model):
 
     title = models.CharField(verbose_name='Заголовок', max_length=250)
     url = models.SlugField(max_length=25, unique_for_date='publish', unique=True)
-    # author = models.ForeignKey(
-    #     'users.CustomUser', verbose_name='Автор', on_delete=models.CASCADE, related_name='post_author', null=True
-    # )
+    author = models.ForeignKey(
+        'users.User', verbose_name='Автор', on_delete=models.CASCADE, related_name='post_author', null=True
+    )
     category = models.ForeignKey(
         'blog.Category', verbose_name='Категория', related_name='post_category', on_delete=models.SET_NULL, null=True
     )
@@ -77,12 +77,6 @@ class Post(models.Model):
     def __str__(self):
         return self.title
 
-    def get_absolute_url(self):
-        return reverse('post_detail', kwargs={'slug': self.url})
-
-    def get_comment(self):
-        return self.comments.filter(parent__isnull=True, active=True).prefetch_related('parent_comments')
-
     class Meta:
         verbose_name = 'Пост'
         verbose_name_plural = 'Посты'
@@ -110,6 +104,16 @@ class Comment(models.Model):
     created = models.DateTimeField(auto_now_add=True)
     updated = models.DateTimeField(auto_now=True)
     active = models.BooleanField(default=True)
+
+    def clean(self):
+        """Ограничение создания третьего уровня вложенности комментариев"""
+        if self.parent and self.parent.parent:
+            raise ValidationError('Нельзя добавлять комментарии третьего уровня вложенности.')
+
+    def save(self, *args, **kwargs):
+        """Cохранение объекта модели с вызовом метода валидации clean()"""
+        self.clean()
+        return super().save(*args, **kwargs)
 
     def __str__(self):
         return f'Комментарий от {self.name} к {self.post}'
@@ -139,7 +143,7 @@ class Rating(models.Model):
     """Рейтинг"""
 
     ip = models.CharField(verbose_name='IP адрес', max_length=15)
-    mark = models.ForeignKey('blog.Mark', verbose_name='Оценка', on_delete=models.CASCADE)
+    mark = models.ForeignKey('blog.Mark', verbose_name='Оценка', on_delete=models.CASCADE, related_name='rating_mark')
     post = models.ForeignKey('blog.Post', verbose_name='Пост', on_delete=models.CASCADE, related_name='rating_post')
 
     def __str__(self):

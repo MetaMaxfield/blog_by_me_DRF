@@ -1,16 +1,35 @@
 from django.utils import timezone
+from django.utils.translation import gettext as _
 from rest_framework import serializers
 from taggit.models import Tag
-from taggit.serializers import TaggitSerializer, TagListSerializerField
 
 from blog.models import Category, Comment, Post, Rating, Video
+from users.serializers import AuthorDetailSerializer
 
 
-class PostsSerializer(TaggitSerializer, serializers.ModelSerializer):
+class TagsSerializerMixin(serializers.ModelSerializer):
+    """
+    Миксин для сериализаторов, добавляющий поле tags для оптимизированного отображения тегов.
+    Класс обеспечивает работу с предзагруженными данными тегов, сокращая количество запросов к базе данных
+    """
+
+    tags = serializers.SerializerMethodField()
+
+    def get_tags(self, obj):
+        """
+        Возвращает список тегов для поста в формате {"name": "наименование тега", "url": "URL тега"},
+        используя предзагруженные данные, если они доступны
+        """
+        if hasattr(obj, 'prefetched_tags'):
+            return [{'name': item.tag.name, 'url': item.tag.slug} for item in obj.prefetched_tags]
+        return [{'name': tag.name, 'url': tag.slug} for tag in obj.tags.all()]
+
+
+class PostsSerializer(TagsSerializerMixin, serializers.ModelSerializer):
     """Посты блога"""
 
     category = serializers.SlugRelatedField(slug_field='name', read_only=True)
-    tags = TagListSerializerField()
+    author = AuthorDetailSerializer(fields=('id', 'username'))
     ncomments = serializers.IntegerField()
 
     def __init__(self, *args, **kwargs):
@@ -26,7 +45,7 @@ class PostsSerializer(TaggitSerializer, serializers.ModelSerializer):
 
     class Meta:
         model = Post
-        exclude = ('created', 'updated', 'draft', 'video')
+        exclude = ('created', 'updated', 'draft', 'video', 'title_ru', 'title_en', 'body_en', 'body_ru')
 
 
 class VideoDetailSerializer(serializers.ModelSerializer):
@@ -37,29 +56,26 @@ class VideoDetailSerializer(serializers.ModelSerializer):
         fields = ('title', 'file')
 
 
-class FilterCommentsListSerializer(serializers.ListSerializer):
-    """Фильтр комментариев, только parents"""
-
-    def to_representation(self, data):
-        data = data.filter(parent=None)
-        return super().to_representation(data)
-
-
-class RecursiveSerializer(serializers.Serializer):
-    """Вывод рекурсивно children"""
-
-    def to_representation(self, value):
-        serializer = self.parent.parent.__class__(value, context=self.context)
-        return serializer.data
-
-
 class CommentsSerializer(serializers.ModelSerializer):
     """Вывод комментариев к постам"""
 
-    children = RecursiveSerializer(many=True)
+    children = serializers.SerializerMethodField()
+
+    def get_children(self, obj):
+        """
+        Возвращает вложенные комментарии второго уровня для комментария первого уровня.
+
+        Метод проверяет, есть ли предзагруженные данные для комментариев второго уровня
+        в атрибуте `prefetched_comments2`. Если данные есть, они сериализуются и возвращаются.
+        Если данных нет, возвращается пустой список, что означает отсутствие данных,
+        а не ошибку в предзагрузке.
+        """
+
+        if hasattr(obj, 'prefetched_comments2'):
+            return CommentsSerializer(obj.prefetched_comments2, many=True, context=self.context).data
+        return []
 
     class Meta:
-        list_serializer_class = FilterCommentsListSerializer
         model = Comment
         exclude = ('email', 'active', 'parent')
 
@@ -70,23 +86,39 @@ class AddCommentSerializer(serializers.ModelSerializer):
     def validate(self, attrs):
         """Запрет на добавление комментария к черновым или ещё не опубликованным постам"""
         if attrs['post'].draft or attrs['post'].publish > timezone.now():
-            raise serializers.ValidationError('Невозможно оставить комментарий для данного поста.')
+            raise serializers.ValidationError(_('Невозможно оставить комментарий для данного поста.'))
         return attrs
+
+    def validate_parent(self, parent):
+        """
+        Проверяет, что родительский комментарий не имеет собственного родителя
+        (исключение третьего уровня вложенности комментариев)
+        """
+        if parent and parent.parent:
+            raise serializers.ValidationError(_('Нельзя добавлять комментарии третьего уровня вложенности.'))
+        return parent
 
     class Meta:
         model = Comment
         fields = '__all__'
 
 
-class PostDetailSerializer(TaggitSerializer, serializers.ModelSerializer):
+class PostDetailSerializer(TagsSerializerMixin, serializers.ModelSerializer):
     """Отдельный пост"""
 
     category = serializers.SlugRelatedField(slug_field='name', read_only=True)
+    author = AuthorDetailSerializer(fields=('id', 'username'))
     video = VideoDetailSerializer(read_only=True)
-    tags = TagListSerializerField()
-    comments = CommentsSerializer(read_only=True, many=True)
+    comments = serializers.SerializerMethodField()
     ncomments = serializers.IntegerField()
     user_rating = serializers.IntegerField()
+
+    def get_comments(self, obj):
+        """
+        Возвращает список комментариев для поста,
+        используя предзагруженные данные в атрибуте 'prefetched_comments1'
+        """
+        return CommentsSerializer(obj.prefetched_comments1, context=self.context, read_only=True, many=True).data
 
     def __init__(self, *args, **kwargs):
         fields = kwargs.pop('fields', None)
@@ -101,7 +133,7 @@ class PostDetailSerializer(TaggitSerializer, serializers.ModelSerializer):
 
     class Meta:
         model = Post
-        exclude = ('draft',)
+        exclude = ('draft', 'title_ru', 'title_en', 'body_ru', 'body_en')
 
 
 class CategoryListSerializer(serializers.ModelSerializer):
@@ -109,18 +141,18 @@ class CategoryListSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Category
-        fields = '__all__'
+        exclude = ('name_ru', 'name_en', 'description_ru', 'description_en')
 
 
 class VideoListSerializer(serializers.ModelSerializer):
     """Список видеозаписей"""
 
-    post_video = PostDetailSerializer(read_only=True, fields=('id', 'url', 'category'))
+    post_video = PostDetailSerializer(read_only=True, fields=('id', 'url', 'category', 'author', 'tags'))
     ncomments = serializers.IntegerField()
 
     class Meta:
         model = Video
-        fields = '__all__'
+        exclude = ('title_ru', 'title_en', 'description_ru', 'description_en')
 
 
 class AddRatingSerializer(serializers.ModelSerializer):
@@ -133,7 +165,7 @@ class AddRatingSerializer(serializers.ModelSerializer):
     def validate(self, attrs):
         """Запрет на добавление оценки к черновым или ещё не опубликованным постам"""
         if attrs['post'].draft or attrs['post'].publish > timezone.now():
-            raise serializers.ValidationError('Невозможно оставить оценку для данного поста.')
+            raise serializers.ValidationError(_('Невозможно оставить оценку для данного поста.'))
         return attrs
 
     def create(self, validated_data):

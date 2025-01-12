@@ -1,12 +1,14 @@
 from ckeditor_uploader.widgets import CKEditorUploadingWidget
 from django import forms
 from django.contrib import admin
+from django.contrib.auth.models import Group
 from django.utils import timezone
-
-# from django.contrib.auth.models import Group
 from django.utils.safestring import mark_safe
+from modeltranslation.admin import TranslationAdmin
 
-from .models import Category, Comment, Mark, Post, Rating, Video
+from blog_by_me_DRF.settings import TITLE_MODERATOR_GROUP
+
+from .models import Category, Comment, Post, Rating, Video
 
 # Зарегистрированная модель Comment для отображения в панели администрациии
 admin.site.register(Comment)
@@ -15,7 +17,8 @@ admin.site.register(Comment)
 class PostAdminForm(forms.ModelForm):
     """Настройки CKEditor для поля "body" и валидация даты публикации в модели Post"""
 
-    body = forms.CharField(label='Содержание', widget=CKEditorUploadingWidget())
+    body_ru = forms.CharField(label='Содержание [ru]:', widget=CKEditorUploadingWidget())
+    body_en = forms.CharField(label='Содержание [en]:', widget=CKEditorUploadingWidget())
 
     def clean_publish(self):
         """
@@ -42,16 +45,8 @@ class CommentInline(admin.TabularInline):
     extra = 1
 
 
-@admin.register(Mark)
-class MarkAdmin(admin.ModelAdmin):
-    """Оценки"""
-
-    list_display = ('nomination', 'value')
-    list_display_links = ('nomination',)
-
-
 @admin.register(Video)
-class VideoAdmin(admin.ModelAdmin):
+class VideoAdmin(TranslationAdmin):
     """Видео"""
 
     list_display = ('title', 'file', 'create_at')
@@ -59,22 +54,36 @@ class VideoAdmin(admin.ModelAdmin):
     list_filter = ('title',)
     ordering = ('title', 'create_at')
     search_fields = ('title',)
+    fieldsets = [
+        ['Наименование', {'fields': ('title',)}],
+        ['Содержание', {'fields': ('description',)}],
+        ['Файл', {'fields': ('file',)}],
+    ]
 
-    # def get_queryset(self, request):
-    #     """Получение видео из базы данных в зависимости от статуса пользователя"""
-    #     qs = super().get_queryset(request)
-    #     if request.user.is_superuser:
-    #         return qs
-    #     else:
-    #         try:
-    #             request.user.groups.get(name=TITLE_MODERATOR_GROUP)
-    #             return qs
-    #         except Group.DoesNotExist:
-    #             return qs.filter(post_video__author=request.user)
+    def get_fieldsets(self, request, obj=None):
+        """Удаляет возможность изменения файла с видео, если объект уже существует"""
+        fieldsets = super().get_fieldsets(request, obj)
+        if obj:
+            fieldsets_for_change = fieldsets.copy()
+            fieldsets_for_change.pop(2)
+            return fieldsets_for_change
+        return fieldsets
+
+    def get_queryset(self, request):
+        """Получение видео из базы данных в зависимости от статуса пользователя"""
+        qs = super().get_queryset(request)
+        if request.user.is_superuser:
+            return qs
+        else:
+            try:
+                request.user.groups.get(name=TITLE_MODERATOR_GROUP)
+                return qs
+            except Group.DoesNotExist:
+                return qs.filter(post_video__author=request.user)
 
 
 @admin.register(Category)
-class CategoryAdmin(admin.ModelAdmin):
+class CategoryAdmin(TranslationAdmin):
     """Категории"""
 
     list_display = ('name', 'description', 'url')
@@ -86,14 +95,14 @@ class CategoryAdmin(admin.ModelAdmin):
 
 
 @admin.register(Post)
-class PostAdmin(admin.ModelAdmin):
+class PostAdmin(TranslationAdmin):
     """Посты"""
 
     list_display = [
         'id',
         'title',
         'url',
-        # 'author',
+        'author',
         'publish',
         'draft',
         'get_image',
@@ -101,7 +110,7 @@ class PostAdmin(admin.ModelAdmin):
     list_editable = ('draft',)
     list_filter = (
         'title',
-        # 'author',
+        'author',
         'category',
         'publish',
         'draft',
@@ -120,16 +129,11 @@ class PostAdmin(admin.ModelAdmin):
         CommentInline,
     ]
     form = PostAdminForm
-    fieldsets = (
+    fieldsets = [
         ['Заголовок', {'fields': ('title',)}],
         [
             'Категория и автор',
-            {
-                'fields': (
-                    'category',
-                    # 'author'
-                )
-            },
+            {'fields': ('category', 'author')},
         ],
         [
             'Содержание',
@@ -155,7 +159,7 @@ class PostAdmin(admin.ModelAdmin):
                 )
             },
         ],
-    )
+    ]
 
     def get_image(self, obj):
         """Отображение изображения в панеле администрации"""
@@ -175,43 +179,43 @@ class PostAdmin(admin.ModelAdmin):
             returned_readonly_fields.append('publish')
         return returned_readonly_fields
 
-    # def get_queryset(self, request):
-    #     """
-    #     Получение постов из базы данных
-    #     в зависимости от статуса пользователя
-    #     """
-    #     qs = super().get_queryset(request)
-    #     if request.user.is_superuser:
-    #         return qs
-    #     else:
-    #         try:
-    #             request.user.groups.get(name=TITLE_MODERATOR_GROUP)
-    #             return qs
-    #         except Group.DoesNotExist:
-    #             return qs.filter(author=request.user)
-    #
-    # def get_fieldsets(self, request, obj=None):
-    #     """Отображение полей в зависимости от статуса пользователя"""
-    #     fieldsets = super().get_fieldsets(request, obj)
-    #     if request.user.is_superuser:
-    #         return fieldsets
-    #     else:
-    #         try:
-    #             request.user.groups.get(name=TITLE_MODERATOR_GROUP)
-    #             return fieldsets
-    #         except Group.DoesNotExist:
-    #             fields = fieldsets.copy()
-    #             fields[1] = ['Категория', {'fields': ('category',)}]
-    #             return fields
-    #
-    # def save_model(self, request, obj, form, change):
-    #     """
-    #     Приравнивание полю "Автор" текущего пользователя по умолчанию
-    #     при сохранении поста
-    #     """
-    #     if not obj.author:
-    #         obj.author = request.user
-    #     super().save_model(request, obj, form, change)
+    def get_queryset(self, request):
+        """
+        Получение постов из базы данных
+        в зависимости от статуса пользователя
+        """
+        qs = super().get_queryset(request)
+        if request.user.is_superuser:
+            return qs
+        else:
+            try:
+                request.user.groups.get(name=TITLE_MODERATOR_GROUP)
+                return qs
+            except Group.DoesNotExist:
+                return qs.filter(author=request.user)
+
+    def get_fieldsets(self, request, obj=None):
+        """Отображение полей в зависимости от статуса пользователя"""
+        fieldsets = super().get_fieldsets(request, obj)
+        if request.user.is_superuser:
+            return fieldsets
+        else:
+            try:
+                request.user.groups.get(name=TITLE_MODERATOR_GROUP)
+                return fieldsets
+            except Group.DoesNotExist:
+                fields = fieldsets.copy()
+                fields[1] = ['Категория', {'fields': ('category',)}]
+                return fields
+
+    def save_model(self, request, obj, form, change):
+        """
+        Приравнивание полю "Автор" текущего пользователя по умолчанию
+        при сохранении поста
+        """
+        if not obj.author:
+            obj.author = request.user
+        super().save_model(request, obj, form, change)
 
 
 @admin.register(Rating)
