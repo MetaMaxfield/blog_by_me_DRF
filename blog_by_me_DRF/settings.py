@@ -296,3 +296,8 @@ CKEDITOR_CONFIGS = {
         ),
     }
 }
+
+
+# Настройки формата телефонных номеров для библиотеки "django-phonenumber-field"
+PHONENUMBER_DEFAULT_FORMAT = 'E164'
+PHONENUMBER_DEFAULT_REGION = 'RU'
