@@ -1,5 +1,5 @@
 from django.utils.translation import gettext as _
-from rest_framework import status
+from rest_framework import generics, status
 from rest_framework.request import Request
 from rest_framework.response import Response
 from rest_framework.views import APIView
@@ -11,16 +11,25 @@ from services.blog import paginators, validators
 from services.client_ip import get_client_ip
 from services.rating import ServiceUserRating
 
+# class PostsView(APIView):
+#     """Вывод постов блога"""
+#
+#     def get(self, request: Request) -> Response:
+#         object_list = caching.get_cached_objects_or_queryset(settings.KEY_POSTS_LIST)
+#         paginator = paginators.PageNumberPaginationForPosts()
+#         paginated_object_list = paginator.paginate_queryset(object_list, request)
+#         serializer = serializers.PostsSerializer(paginated_object_list, many=True)
+#         return paginator.get_paginated_response(serializer.data)
 
-class PostsView(APIView):
+
+class PostsView(generics.ListAPIView):
     """Вывод постов блога"""
 
-    def get(self, request: Request) -> Response:
-        object_list = caching.get_cached_objects_or_queryset(settings.KEY_POSTS_LIST)
-        paginator = paginators.PageNumberPaginationForPosts()
-        paginated_object_list = paginator.paginate_queryset(object_list, request)
-        serializer = serializers.PostsSerializer(paginated_object_list, many=True)
-        return paginator.get_paginated_response(serializer.data)
+    serializer_class = serializers.PostsSerializer
+    pagination_class = paginators.PageNumberPaginationForPosts
+
+    def get_queryset(self):
+        return caching.get_cached_objects_or_queryset(settings.KEY_POSTS_LIST)
 
 
 class SearchPostView(APIView):
