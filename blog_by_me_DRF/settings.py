@@ -12,7 +12,9 @@ https://docs.djangoproject.com/en/4.2/ref/settings/
 
 import os
 from pathlib import Path
+from typing import TypeVar
 
+from django.db.models import Model
 from django.utils.translation import gettext_lazy as _
 from dotenv import load_dotenv
 
@@ -180,6 +182,8 @@ USE_I18N = True
 
 
 # Список всех доступных языков
+# Порядок языков в LANGUAGES важен: значения языков используются в логике работы кода
+# Не изменяйте порядок элементов в кортеже
 LANGUAGES = (
     ('ru', _('Русский')),
     ('en', _('English')),
@@ -230,6 +234,58 @@ if os.path.isfile(os.path.join(os.path.dirname(os.path.dirname(__file__)), '.env
 INTERNAL_IPS = [
     "127.0.0.1",
 ]
+
+
+# Ключи для кэширования данных (функция get_cached_objects_or_queryset)
+# и определения необходимого запроса к БД (функция qs_definition)
+KEY_POSTS_LIST = os.getenv('KEY_POSTS_LIST')
+KEY_POST_DETAIL = os.getenv('KEY_POST_DETAIL')
+KEY_CATEGORIES_LIST = os.getenv('KEY_CATEGORIES_LIST')
+KEY_VIDEOS_LIST = os.getenv('KEY_VIDEOS_LIST')
+KEY_ABOUT = os.getenv('KEY_ABOUT')
+KEY_AUTHORS_LIST = os.getenv('KEY_AUTHORS_LIST')
+KEY_AUTHOR_DETAIL = os.getenv('KEY_AUTHOR_DETAIL')
+KEY_TOP_POSTS = os.getenv('KEY_TOP_POSTS')
+KEY_LAST_POSTS = os.getenv('KEY_LAST_POSTS')
+KEY_ALL_TAGS = os.getenv('KEY_ALL_TAGS')
+KEY_POSTS_CALENDAR = os.getenv('KEY_POSTS_CALENDAR')
+
+
+# Ключ-префикс для других ключей
+CACHE_KEY = os.getenv('CACHE_KEY')
+
+
+# Настройки кэша
+CACHES = {
+    'default': {
+        'BACKEND': 'django.core.cache.backends.memcached.PyMemcacheCache',
+        'LOCATION': '127.0.0.1:11211',
+    }
+}
+
+
+# Время кэширования для разных типов данных
+CACHE_TIMES = {
+    KEY_POSTS_LIST: 300,  # 5 минут для списка постов
+    KEY_POST_DETAIL: 600,  # 10 минут для отдельного поста
+    KEY_CATEGORIES_LIST: 3600,  # 1 час для списка категорий
+    KEY_VIDEOS_LIST: 600,  # 10 минут для списка видеозаписей
+    KEY_ABOUT: 86400,  # 1 день для информации о компании
+    KEY_AUTHORS_LIST: 3600,  # 1 час для списка авторов
+    KEY_AUTHOR_DETAIL: 600,  # 10 минут для отдельного автора
+    KEY_TOP_POSTS: 900,  # 15 минут для трёх самых популярных постов
+    KEY_LAST_POSTS: 300,  # 5 минут для трёх последних постов
+    KEY_ALL_TAGS: 1800,  # 30 миннут для десяти популярных тегов
+    KEY_POSTS_CALENDAR: 3600,  # 1 час для списка с днями публикации постов
+}
+
+
+# Настроки для работы SMTP сервера
+EMAIL_HOST = 'smtp.gmail.com'
+EMAIL_HOST_USER = os.getenv('EMAIL_HOST_USER_KEY')
+EMAIL_HOST_PASSWORD = os.getenv('EMAIL_HOST_PASSWORD_KEY')
+EMAIL_PORT = 587
+EMAIL_USE_TLS = True
 
 
 # Путь к каталогу загрузки мультимедиа CKEditor
@@ -352,3 +408,12 @@ TITLE_DISLIKE_MARK = 'Дизлайк'
 
 # Настройка библиотеки "django-taggit" для игнорирования регистра в тегах
 TAGGIT_CASE_INSENSITIVE = True
+
+
+# Настройки формата телефонных номеров для библиотеки "django-phonenumber-field"
+PHONENUMBER_DEFAULT_FORMAT = 'E164'
+PHONENUMBER_DEFAULT_REGION = 'RU'
+
+
+# Общая аннотация для объектов, наследуемых от базовой модели Django
+ObjectModel = TypeVar('ObjectModel', bound=Model)
