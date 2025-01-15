@@ -49,11 +49,6 @@ class SearchPostView(APIView):
 
         post_list = search.search_by_q(q, post_list, request.LANGUAGE_CODE)
 
-        if not post_list.exists():
-            return Response(
-                {'detail': _('Посты по запросу "{q}" не найдены').format(q=q)}, status=status.HTTP_204_NO_CONTENT
-            )
-
         paginator = PageNumberPaginationForPosts()
         paginated_post_list = paginator.paginate_queryset(post_list, request)
 
@@ -72,12 +67,6 @@ class FilterDatePostsView(APIView):
 
         post_list = search.search_by_date(post_list, date_post)
 
-        if not post_list.exists():
-            return Response(
-                {'detail': _('Посты с датой "{date_post}" не найдены').format(date_post=date_post)},
-                status=status.HTTP_204_NO_CONTENT,
-            )
-
         paginator = PageNumberPaginationForPosts()
         paginated_post_list = paginator.paginate_queryset(post_list, request)
 
@@ -93,9 +82,6 @@ class FilterTagPostsView(APIView):
         post_list = caching.get_cached_objects_or_queryset(settings.KEY_POSTS_LIST)
 
         post_list = search.search_by_tag(post_list, tag_slug)
-
-        if not post_list.exists():
-            return Response({'detail': _('Посты с заданным тегом не найдены')}, status=status.HTTP_204_NO_CONTENT)
 
         paginator = PageNumberPaginationForPosts()
         paginated_post_list = paginator.paginate_queryset(post_list, request)
