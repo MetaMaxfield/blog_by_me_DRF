@@ -32,20 +32,32 @@ class PostsView(generics.ListAPIView):
         return caching.get_cached_objects_or_queryset(settings.KEY_POSTS_LIST)
 
 
-class SearchPostView(APIView):
+# class SearchPostView(APIView):
+#     """Вывод результатов поиска постов блога"""
+#
+#     def get(self, request: Request) -> Response:
+#         q = request.query_params.get('q')
+#         validators.validate_q_param(q)
+#
+#         post_list = caching.get_cached_objects_or_queryset(settings.KEY_POSTS_LIST)
+#         post_list = search.search_by_q(q, post_list, request.LANGUAGE_CODE)
+#
+#         paginator = paginators.PageNumberPaginationForPosts()
+#         paginated_post_list = paginator.paginate_queryset(post_list, request)
+#         serializer = serializers.PostsSerializer(paginated_post_list, many=True)
+#         return paginator.get_paginated_response(serializer.data)
+
+
+class SearchPostView(PostsView):
     """Вывод результатов поиска постов блога"""
 
-    def get(self, request: Request) -> Response:
-        q = request.query_params.get('q')
-        validators.validate_q_param(q)
+    def get(self, request, *args, **kwargs):
+        self.kwargs['q'] = self.request.query_params.get('q')
+        validators.validate_q_param(self.kwargs['q'])
+        return super().get(request, *args, **kwargs)
 
-        post_list = caching.get_cached_objects_or_queryset(settings.KEY_POSTS_LIST)
-        post_list = search.search_by_q(q, post_list, request.LANGUAGE_CODE)
-
-        paginator = paginators.PageNumberPaginationForPosts()
-        paginated_post_list = paginator.paginate_queryset(post_list, request)
-        serializer = serializers.PostsSerializer(paginated_post_list, many=True)
-        return paginator.get_paginated_response(serializer.data)
+    def filter_queryset(self, queryset):
+        return search.search_by_q(self.kwargs['q'], queryset, self.request.LANGUAGE_CODE)
 
 
 class FilterDatePostsView(APIView):
