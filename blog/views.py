@@ -32,10 +32,6 @@ class SearchPostView(APIView):
 
         post_list = caching.get_cached_objects_or_queryset(settings.KEY_POSTS_LIST)
         post_list = search.search_by_q(q, post_list, request.LANGUAGE_CODE)
-        if not post_list.exists():
-            return Response(
-                {'detail': _('Посты по запросу "{q}" не найдены').format(q=q)}, status=status.HTTP_204_NO_CONTENT
-            )
 
         paginator = paginators.PageNumberPaginationForPosts()
         paginated_post_list = paginator.paginate_queryset(post_list, request)
@@ -51,14 +47,10 @@ class FilterDatePostsView(APIView):
 
         post_list = caching.get_cached_objects_or_queryset(settings.KEY_POSTS_LIST)
         post_list = search.search_by_date(post_list, date_post)
-        if not post_list.exists():
-            return Response(
-                {'detail': _('Посты с датой "{date_post}" не найдены').format(date_post=date_post)},
-                status=status.HTTP_204_NO_CONTENT,
-            )
 
         paginator = paginators.PageNumberPaginationForPosts()
         paginated_post_list = paginator.paginate_queryset(post_list, request)
+
         serializer = serializers.PostsSerializer(paginated_post_list, many=True)
         return paginator.get_paginated_response(serializer.data)
 
@@ -69,11 +61,10 @@ class FilterTagPostsView(APIView):
     def get(self, request: Request, tag_slug: str) -> Response:
         post_list = caching.get_cached_objects_or_queryset(settings.KEY_POSTS_LIST)
         post_list = search.search_by_tag(post_list, tag_slug)
-        if not post_list.exists():
-            return Response({'detail': _('Посты с заданным тегом не найдены')}, status=status.HTTP_204_NO_CONTENT)
 
         paginator = paginators.PageNumberPaginationForPosts()
         paginated_post_list = paginator.paginate_queryset(post_list, request)
+
         serializer = serializers.PostsSerializer(paginated_post_list, many=True)
         return paginator.get_paginated_response(serializer.data)
 
