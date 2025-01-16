@@ -60,20 +60,31 @@ class SearchPostView(PostsView):
         return search.search_by_q(self.kwargs['q'], queryset, self.request.LANGUAGE_CODE)
 
 
-class FilterDatePostsView(APIView):
+# class FilterDatePostsView(APIView):
+#     """Вывод постов с фильтрацией по дате"""
+#
+#     def get(self, request: Request, date_post: str) -> Response:
+#         validators.validate_date_format(date_post)
+#
+#         post_list = caching.get_cached_objects_or_queryset(settings.KEY_POSTS_LIST)
+#         post_list = search.search_by_date(post_list, date_post)
+#
+#         paginator = paginators.PageNumberPaginationForPosts()
+#         paginated_post_list = paginator.paginate_queryset(post_list, request)
+#
+#         serializer = serializers.PostsSerializer(paginated_post_list, many=True)
+#         return paginator.get_paginated_response(serializer.data)
+
+
+class FilterDatePostsView(PostsView):
     """Вывод постов с фильтрацией по дате"""
 
-    def get(self, request: Request, date_post: str) -> Response:
-        validators.validate_date_format(date_post)
+    def get(self, request, *args, **kwargs):
+        validators.validate_date_format(self.kwargs['date_post'])
+        return super().get(request, *args, **kwargs)
 
-        post_list = caching.get_cached_objects_or_queryset(settings.KEY_POSTS_LIST)
-        post_list = search.search_by_date(post_list, date_post)
-
-        paginator = paginators.PageNumberPaginationForPosts()
-        paginated_post_list = paginator.paginate_queryset(post_list, request)
-
-        serializer = serializers.PostsSerializer(paginated_post_list, many=True)
-        return paginator.get_paginated_response(serializer.data)
+    def filter_queryset(self, queryset):
+        return search.search_by_date(queryset, self.kwargs['date_post'])
 
 
 class FilterTagPostsView(APIView):
