@@ -100,7 +100,7 @@ class AddCommentSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Comment
-        fields = '__all__'
+        exclude = ('active',)
 
 
 class PostDetailSerializer(TagsSerializerMixin, serializers.ModelSerializer):
