@@ -129,13 +129,22 @@ class AddCommentView(generics.CreateAPIView):
         return Response({'message': _('Комментарий успешно добавлен.')}, status=status.HTTP_201_CREATED)
 
 
-class PostDetailView(APIView):
+# class PostDetailView(APIView):
+#     """Вывод отдельного поста"""
+#
+#     def get(self, request: Request, slug: str) -> Response:
+#         post = caching.get_cached_objects_or_queryset(settings.KEY_POST_DETAIL, slug=slug)
+#         serializer = serializers.PostDetailSerializer(post, context={'request': request})
+#         return Response(serializer.data)
+
+
+class PostDetailView(generics.RetrieveAPIView):
     """Вывод отдельного поста"""
 
-    def get(self, request: Request, slug: str) -> Response:
-        post = caching.get_cached_objects_or_queryset(settings.KEY_POST_DETAIL, slug=slug)
-        serializer = serializers.PostDetailSerializer(post, context={'request': request})
-        return Response(serializer.data)
+    serializer_class = serializers.PostDetailSerializer
+
+    def get_object(self):
+        return caching.get_cached_objects_or_queryset(settings.KEY_POST_DETAIL, slug=self.kwargs['slug'])
 
 
 class CategoryListView(APIView):
