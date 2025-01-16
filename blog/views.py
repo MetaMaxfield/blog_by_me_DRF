@@ -87,18 +87,25 @@ class FilterDatePostsView(PostsView):
         return search.search_by_date(queryset, self.kwargs['date_post'])
 
 
-class FilterTagPostsView(APIView):
+# class FilterTagPostsView(APIView):
+#     """Вывод постов с фильтрацией по тегу"""
+#
+#     def get(self, request: Request, tag_slug: str) -> Response:
+#         post_list = caching.get_cached_objects_or_queryset(settings.KEY_POSTS_LIST)
+#         post_list = search.search_by_tag(post_list, tag_slug)
+#
+#         paginator = paginators.PageNumberPaginationForPosts()
+#         paginated_post_list = paginator.paginate_queryset(post_list, request)
+#
+#         serializer = serializers.PostsSerializer(paginated_post_list, many=True)
+#         return paginator.get_paginated_response(serializer.data)
+
+
+class FilterTagPostsView(PostsView):
     """Вывод постов с фильтрацией по тегу"""
 
-    def get(self, request: Request, tag_slug: str) -> Response:
-        post_list = caching.get_cached_objects_or_queryset(settings.KEY_POSTS_LIST)
-        post_list = search.search_by_tag(post_list, tag_slug)
-
-        paginator = paginators.PageNumberPaginationForPosts()
-        paginated_post_list = paginator.paginate_queryset(post_list, request)
-
-        serializer = serializers.PostsSerializer(paginated_post_list, many=True)
-        return paginator.get_paginated_response(serializer.data)
+    def filter_queryset(self, queryset):
+        return search.search_by_tag(queryset, self.kwargs['tag_slug'])
 
 
 class AddCommentView(APIView):
