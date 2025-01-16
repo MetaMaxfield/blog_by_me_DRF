@@ -6,7 +6,7 @@ from rest_framework.views import APIView
 
 from blog import serializers
 from blog_by_me_DRF import settings
-from services import caching, rating, search
+from services import caching, search
 from services.blog import paginators, validators
 from services.client_ip import get_client_ip
 from services.rating import ServiceUserRating
@@ -134,8 +134,7 @@ class PostDetailView(APIView):
 
     def get(self, request: Request, slug: str) -> Response:
         post = caching.get_cached_objects_or_queryset(settings.KEY_POST_DETAIL, slug=slug)
-        post.user_rating = rating.has_user_rated_post(get_client_ip(request), post)
-        serializer = serializers.PostDetailSerializer(post)
+        serializer = serializers.PostDetailSerializer(post, context={'request': request})
         return Response(serializer.data)
 
 
