@@ -16,7 +16,7 @@ from services.rating import ServiceUserRating
 #
 #     def get(self, request: Request) -> Response:
 #         object_list = caching.get_cached_objects_or_queryset(settings.KEY_POSTS_LIST)
-#         paginator = paginators.PageNumberPaginationForPosts()
+#         paginator = paginators.get_paginator_for_post_list(request.query_params.get('pagination'))
 #         paginated_object_list = paginator.paginate_queryset(object_list, request)
 #         serializer = serializers.PostsSerializer(paginated_object_list, many=True)
 #         return paginator.get_paginated_response(serializer.data)
@@ -26,7 +26,12 @@ class PostsView(generics.ListAPIView):
     """Вывод постов блога"""
 
     serializer_class = serializers.PostsSerializer
-    pagination_class = paginators.PageNumberPaginationForPosts
+
+    @property
+    def paginator(self):
+        if not hasattr(self, '_paginator'):
+            self._paginator = paginators.get_paginator_for_post_list(self.request.query_params.get('pagination'))
+        return self._paginator
 
     def get_queryset(self):
         return caching.get_cached_objects_or_queryset(settings.KEY_POSTS_LIST)
@@ -42,7 +47,7 @@ class PostsView(generics.ListAPIView):
 #         post_list = caching.get_cached_objects_or_queryset(settings.KEY_POSTS_LIST)
 #         post_list = search.search_by_q(q, post_list, request.LANGUAGE_CODE)
 #
-#         paginator = paginators.PageNumberPaginationForPosts()
+#         paginator = paginators.get_paginator_for_post_list(request.query_params.get('pagination'))
 #         paginated_post_list = paginator.paginate_queryset(post_list, request)
 #         serializer = serializers.PostsSerializer(paginated_post_list, many=True)
 #         return paginator.get_paginated_response(serializer.data)
@@ -69,7 +74,7 @@ class SearchPostView(PostsView):
 #         post_list = caching.get_cached_objects_or_queryset(settings.KEY_POSTS_LIST)
 #         post_list = search.search_by_date(post_list, date_post)
 #
-#         paginator = paginators.PageNumberPaginationForPosts()
+#         paginator = paginators.get_paginator_for_post_list(request.query_params.get('pagination'))
 #         paginated_post_list = paginator.paginate_queryset(post_list, request)
 #
 #         serializer = serializers.PostsSerializer(paginated_post_list, many=True)
@@ -94,7 +99,7 @@ class FilterDatePostsView(PostsView):
 #         post_list = caching.get_cached_objects_or_queryset(settings.KEY_POSTS_LIST)
 #         post_list = search.search_by_tag(post_list, tag_slug)
 #
-#         paginator = paginators.PageNumberPaginationForPosts()
+#         paginator = paginators.get_paginator_for_post_list(request.query_params.get('pagination'))
 #         paginated_post_list = paginator.paginate_queryset(post_list, request)
 #
 #         serializer = serializers.PostsSerializer(paginated_post_list, many=True)
