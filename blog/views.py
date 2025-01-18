@@ -157,19 +157,8 @@ class CategoryListView(APIView):
 
     def get(self, request: Request) -> Response:
         category_list = caching.get_cached_objects_or_queryset(settings.KEY_CATEGORIES_LIST)
-        post_list = caching.get_cached_objects_or_queryset(settings.KEY_POSTS_LIST)
-
-        paginator = paginators.CursorPaginationForPostsInCategoryList()
-        paginated_post_list = paginator.paginate_queryset(post_list, request)
-
-        category_serializer = serializers.CategoryListSerializer(category_list, many=True)
-        posts_serializer = serializers.PostsSerializer(paginated_post_list, many=True)
-        return paginator.get_paginated_response(
-            {
-                'category_list': category_serializer.data,
-                'post_list': posts_serializer.data,
-            }
-        )
+        serializer = serializers.CategoryListSerializer(category_list, many=True)
+        return Response(serializer.data)
 
 
 class VideoListView(APIView):
