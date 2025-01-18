@@ -152,13 +152,22 @@ class PostDetailView(generics.RetrieveAPIView):
         return caching.get_cached_objects_or_queryset(settings.KEY_POST_DETAIL, slug=self.kwargs['slug'])
 
 
-class CategoryListView(APIView):
+# class CategoryListView(APIView):
+#     """Вывод списка категорий и постов к ним"""
+#
+#     def get(self, request: Request) -> Response:
+#         category_list = caching.get_cached_objects_or_queryset(settings.KEY_CATEGORIES_LIST)
+#         serializer = serializers.CategoryListSerializer(category_list, many=True)
+#         return Response(serializer.data)
+
+
+class CategoryListView(generics.ListAPIView):
     """Вывод списка категорий и постов к ним"""
 
-    def get(self, request: Request) -> Response:
-        category_list = caching.get_cached_objects_or_queryset(settings.KEY_CATEGORIES_LIST)
-        serializer = serializers.CategoryListSerializer(category_list, many=True)
-        return Response(serializer.data)
+    serializer_class = serializers.CategoryListSerializer
+
+    def get_queryset(self):
+        return caching.get_cached_objects_or_queryset(settings.KEY_CATEGORIES_LIST)
 
 
 class VideoListView(APIView):
