@@ -170,15 +170,25 @@ class CategoryListView(generics.ListAPIView):
         return caching.get_cached_objects_or_queryset(settings.KEY_CATEGORIES_LIST)
 
 
-class VideoListView(APIView):
+# class VideoListView(APIView):
+#     """Вывод всех видеозаписей"""
+#
+#     def get(self, request: Request) -> Response:
+#         video_list = caching.get_cached_objects_or_queryset(settings.KEY_VIDEOS_LIST)
+#         paginator = paginators.LimitOffsetPaginationForVideoList()
+#         paginated_video_list = paginator.paginate_queryset(video_list, request)
+#         videos_serializer = serializers.VideoListSerializer(paginated_video_list, many=True)
+#         return paginator.get_paginated_response(videos_serializer.data)
+
+
+class VideoListView(generics.ListAPIView):
     """Вывод всех видеозаписей"""
 
-    def get(self, request: Request) -> Response:
-        video_list = caching.get_cached_objects_or_queryset(settings.KEY_VIDEOS_LIST)
-        paginator = paginators.LimitOffsetPaginationForVideoList()
-        paginated_video_list = paginator.paginate_queryset(video_list, request)
-        videos_serializer = serializers.VideoListSerializer(paginated_video_list, many=True)
-        return paginator.get_paginated_response(videos_serializer.data)
+    serializer_class = serializers.VideoListSerializer
+    pagination_class = paginators.LimitOffsetPaginationForVideoList
+
+    def get_queryset(self):
+        return caching.get_cached_objects_or_queryset(settings.KEY_VIDEOS_LIST)
 
 
 class AddRatingView(APIView):
