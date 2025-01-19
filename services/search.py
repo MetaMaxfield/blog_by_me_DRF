@@ -8,7 +8,7 @@ from blog_by_me_DRF.settings import LANGUAGES
 from services.exceptions import NoContent
 
 
-def search_by_tag(object_list: QuerySet, tag_slug: str) -> QuerySet:
+def search_by_tag(object_list: QuerySet, tag_slug: str) -> QuerySet | NoContent:
     """Функция фильтрует записи по тегу"""
 
     post_list = object_list.filter(tags__slug=tag_slug)
@@ -18,7 +18,7 @@ def search_by_tag(object_list: QuerySet, tag_slug: str) -> QuerySet:
     return post_list
 
 
-def search_by_date(object_list: QuerySet, date: str) -> QuerySet:
+def search_by_date(object_list: QuerySet, date: str) -> QuerySet | NoContent:
     """Функция фильтрует записи по дате"""
 
     format_date = datetime.datetime.strptime(date, '%Y-%m-%d').date()
@@ -29,7 +29,7 @@ def search_by_date(object_list: QuerySet, date: str) -> QuerySet:
     return post_list
 
 
-def search_by_q(q: str, object_list: QuerySet, current_language: str) -> QuerySet:
+def search_by_q(q: str, object_list: QuerySet, current_language: str) -> QuerySet | NoContent:
     """
     Поиск по названию и содержанию в зависимости от выбранного языка,
     сортировка результатов поиска с использованием специальных классов для PostgreSQL
