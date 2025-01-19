@@ -2,20 +2,8 @@ from django.utils.translation import gettext as _
 from rest_framework import status
 from rest_framework.exceptions import ValidationError
 
-from blog.models import Mark, Post, Rating
+from blog.models import Mark, Rating
 from users.models import User
-
-
-def has_user_rated_post(received_ip: str, post: Post) -> int | None:
-    """
-    Определяет устанавливал ли пользователь рейтинг к посту
-    и возвращает id оценки
-    """
-    try:
-        user_rating = Mark.objects.get(rating_mark__ip=received_ip, rating_mark__post=post).id
-    except Mark.DoesNotExist:
-        user_rating = None
-    return user_rating
 
 
 class ServiceUserRating:
@@ -85,7 +73,7 @@ class ServiceUserRating:
             mark = Mark.objects.get(id=self.mark_id)
             return mark
         except Mark.DoesNotExist:
-            raise ValidationError({'detail': 'Оценка с указанным id не найдена.'})
+            raise ValidationError({'detail': _('Оценка с указанным id не найдена.')})
 
     def _get_author(self) -> User:
         """
@@ -96,7 +84,7 @@ class ServiceUserRating:
             author = User.objects.get(post_author__id=self.post_id)
             return author
         except User.DoesNotExist:
-            raise ValidationError({'detail': 'Пользователь, связанный с указанным id поста, не найден.'})
+            raise ValidationError({'detail': _('Пользователь, связанный с указанным id поста, не найден.')})
 
     def _get_message_and_status_code(self) -> tuple[str, int]:
         """

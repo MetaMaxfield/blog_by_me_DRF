@@ -406,5 +406,14 @@ TITLE_LIKE_MARK = 'Лайк'
 TITLE_DISLIKE_MARK = 'Дизлайк'
 
 
+# Настройка библиотеки "django-taggit" для игнорирования регистра в тегах
+TAGGIT_CASE_INSENSITIVE = True
+
+
+# Настройки формата телефонных номеров для библиотеки "django-phonenumber-field"
+PHONENUMBER_DEFAULT_FORMAT = 'E164'
+PHONENUMBER_DEFAULT_REGION = 'RU'
+
+
 # Общая аннотация для объектов, наследуемых от базовой модели Django
 ObjectModel = TypeVar('ObjectModel', bound=Model)

@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2024-12-06 20:02+0400\n"
+"POT-Creation-Date: 2025-01-11 17:53+0400\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -30,60 +30,78 @@ msgstr "You cannot add comments of the third nesting level."
 msgid "Невозможно оставить оценку для данного поста."
 msgstr "It is not possible to leave a rating for this post."
 
-#: .\blog\views.py:89
-msgid "Пожалуйста, введите текст для поиска постов."
-msgstr "Please enter text to search posts."
-
-#: .\blog\views.py:110
+#: .\blog\views.py:37
 #, python-brace-format
 msgid "Посты по запросу \"{q}\" не найдены"
 msgstr "No posts found matching the query \"{q}\""
 
-#: .\blog\views.py:124
-msgid "Задан неправильный формат даты"
-msgstr "Invalid date format specified"
-
-#: .\blog\views.py:140
+#: .\blog\views.py:56
 #, python-brace-format
 msgid "Посты с датой \"{date_post}\" не найдены"
 msgstr "No posts found with date \"{date_post}\""
 
-#: .\blog\views.py:166
+#: .\blog\views.py:73
 msgid "Посты с заданным тегом не найдены"
 msgstr "No posts found with the given tag"
 
-#: .\blog\views.py:180
+#: .\blog\views.py:88
 msgid "Комментарий успешно добавлен."
 msgstr "Comment added successfully."
 
-#: .\blog\views.py:272
-msgid "Рейтинг успешно обновлен."
-msgstr "Rating successfully updated."
-
-#: .\blog\views.py:273
-msgid "Рейтинг успешно добавлен."
-msgstr "Rating successfully added."
-
-#: .\blog_by_me_DRF\settings.py:182
+#: .\blog_by_me_DRF\settings.py:188
 msgid "Русский"
 msgstr "Русский"
 
-#: .\blog_by_me_DRF\settings.py:183
+#: .\blog_by_me_DRF\settings.py:189
 msgid "English"
 msgstr "English"
 
-#: .\blog_by_me_DRF\settings.py:342
+#: .\blog_by_me_DRF\settings.py:400
 msgid "Модератор"
 msgstr "Moderator"
 
-#: .\blog_by_me_DRF\settings.py:343
+#: .\blog_by_me_DRF\settings.py:401
 msgid "Автор"
 msgstr "Author"
 
-#: .\company\views.py:28
+#: .\company\views.py:31
 msgid "Сообщение успешно отправлено администрации проекта."
 msgstr "The message has been successfully sent to the project administration."
 
-#: .\users\models.py:55
+#: .\services\blog\validators.py:10
+msgid "Задан неправильный формат даты"
+msgstr "Invalid date format specified"
+
+#: .\services\blog\validators.py:16
+msgid "Пожалуйста, введите текст для поиска постов."
+msgstr "Please enter text to search posts."
+
+#: .\services\company\send_mail.py:10
+msgid "Запрос к администрации веб-приложения MAXFIELD."
+msgstr "Request to the administration of the MAXFIELD web application."
+
+#: .\services\company\send_mail.py:11
+msgid ""
+"Ваш запрос зарегистрирован. Ожидайте обратную связь на данный адрес эл. "
+"почты. "
+msgstr "Your request has been registered. Expect feedback to this email address."
+
+#: .\services\rating.py:29
+msgid "Рейтинг успешно обновлен."
+msgstr "Rating successfully updated."
+
+#: .\services\rating.py:30
+msgid "Рейтинг успешно добавлен."
+msgstr "Rating successfully added."
+
+#: .\services\rating.py:88
+msgid "Оценка с указанным id не найдена."
+msgstr "Rating with the specified id not found."
+
+#: .\services\rating.py:99
+msgid "Пользователь, связанный с указанным id поста, не найден."
+msgstr "The user associated with the specified post id was not found."
+
+#: .\users\models.py:40
 msgid "Администратор"
 msgstr "Administrator"
