@@ -283,13 +283,26 @@ class TopPostsView(generics.ListAPIView):
         return super().get_serializer(*args, **kwargs)
 
 
-class LastPostsView(APIView):
+# class LastPostsView(APIView):
+#     """Вывод трех последних опубликованных постов"""
+#
+#     def get(self, request: Request) -> Response:
+#         last_posts = caching.get_cached_objects_or_queryset(settings.KEY_LAST_POSTS)
+#         serializer = serializers.PostsSerializer(last_posts, many=True, fields=('image', 'title', 'body', 'url'))
+#         return Response(serializer.data)
+
+
+class LastPostsView(generics.ListAPIView):
     """Вывод трех последних опубликованных постов"""
 
-    def get(self, request: Request) -> Response:
-        last_posts = caching.get_cached_objects_or_queryset(settings.KEY_LAST_POSTS)
-        serializer = serializers.PostsSerializer(last_posts, many=True, fields=('image', 'title', 'body', 'url'))
-        return Response(serializer.data)
+    serializer_class = serializers.PostsSerializer
+
+    def get_queryset(self):
+        return caching.get_cached_objects_or_queryset(settings.KEY_LAST_POSTS)
+
+    def get_serializer(self, *args, **kwargs):
+        kwargs['fields'] = ('image', 'title', 'body', 'url')
+        return super().get_serializer(*args, **kwargs)
 
 
 class DaysInCalendarView(APIView):
