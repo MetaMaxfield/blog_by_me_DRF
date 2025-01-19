@@ -261,13 +261,26 @@ class AddRatingView(generics.UpdateAPIView):
         return Response({'message': _(self.message)}, status=self.status_code)
 
 
-class TopPostsView(APIView):
+# class TopPostsView(APIView):
+#     """Вывод трёх постов с наивысшим рейтингом"""
+#
+#     def get(self, request: Request) -> Response:
+#         top_posts = caching.get_cached_objects_or_queryset(settings.KEY_TOP_POSTS)
+#         serializer = serializers.PostsSerializer(top_posts, many=True, fields=('title', 'body', 'url'))
+#         return Response(serializer.data)
+
+
+class TopPostsView(generics.ListAPIView):
     """Вывод трёх постов с наивысшим рейтингом"""
 
-    def get(self, request: Request) -> Response:
-        top_posts = caching.get_cached_objects_or_queryset(settings.KEY_TOP_POSTS)
-        serializer = serializers.PostsSerializer(top_posts, many=True, fields=('title', 'body', 'url'))
-        return Response(serializer.data)
+    serializer_class = serializers.PostsSerializer
+
+    def get_queryset(self):
+        return caching.get_cached_objects_or_queryset(settings.KEY_TOP_POSTS)
+
+    def get_serializer(self, *args, **kwargs):
+        kwargs['fields'] = ('title', 'body', 'url')
+        return super().get_serializer(*args, **kwargs)
 
 
 class LastPostsView(APIView):
