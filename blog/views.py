@@ -313,10 +313,19 @@ class DaysInCalendarView(APIView):
         return Response(days_with_post)
 
 
-class TopTagsView(APIView):
+# class TopTagsView(APIView):
+#     """Вывод десяти самых популярных тегов и количества постов к ним"""
+#
+#     def get(self, request: Request) -> Response:
+#         tags = caching.get_cached_objects_or_queryset(settings.KEY_ALL_TAGS)
+#         serializer = serializers.TopTagsSerializer(tags, many=True)
+#         return Response(serializer.data)
+
+
+class TopTagsView(generics.ListAPIView):
     """Вывод десяти самых популярных тегов и количества постов к ним"""
 
-    def get(self, request: Request) -> Response:
-        tags = caching.get_cached_objects_or_queryset(settings.KEY_ALL_TAGS)
-        serializer = serializers.TopTagsSerializer(tags, many=True)
-        return Response(serializer.data)
+    serializer_class = serializers.TopTagsSerializer
+
+    def get_queryset(self):
+        return caching.get_cached_objects_or_queryset(settings.KEY_ALL_TAGS)
