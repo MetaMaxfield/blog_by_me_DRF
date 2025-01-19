@@ -191,34 +191,74 @@ class VideoListView(generics.ListAPIView):
         return caching.get_cached_objects_or_queryset(settings.KEY_VIDEOS_LIST)
 
 
-class AddRatingView(APIView):
-    """Добавление рейтинга к посту"""
+# class AddRatingView(APIView):
+#     """
+#     Добавление рейтинга к посту.
+#
+#     ВНИМАНИЕ: Данное представление реализует PUT as create.
+#     Если объект не найден, он будет автоматически создан при выполнении PUT-запроса.
+#     """
+#
+#     def put(self, request: Request) -> Response:
+#         # Получаем IP пользователя
+#         ip = get_client_ip(request)
+#
+#         # Создаём объект класса для работы с рейтингом
+#         service_rating = ServiceUserRating(ip, post_id=request.data['post'], mark_id=request.data['mark'])
+#
+#         # Получаем текущий рейтинг пользователя для указанного IP-адреса и поста,
+#         # если он существует в базе данных. В противном случае возвращает None
+#         existing_rating = service_rating.existing_rating
+#
+#         # Сериализуем рейтинг для добавления/обновления
+#         rating_serializer = serializers.AddRatingSerializer(instance=existing_rating, data=request.data)
+#
+#         if rating_serializer.is_valid():
+#
+#             # Обновляем рейтинг пользователя на основе выбранной оценки
+#             # и получаем соответствующее сообщение и статусный код для совершённого действия
+#             message, status_code = service_rating.update_author_rating_with_return_message_and_status_code()
+#
+#             rating_serializer.save(ip=ip)
+#
+#             return Response({'message': _(message)}, status=status_code)
+#
+#         return Response(rating_serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
-    def put(self, request: Request) -> Response:
-        # Получаем IP пользователя
-        ip = get_client_ip(request)
 
-        # Создаём объект класса для работы с рейтингом
-        service_rating = ServiceUserRating(ip, post_id=request.data['post'], mark_id=request.data['mark'])
+class AddRatingView(generics.UpdateAPIView):
+    """
+    Добавление рейтинга к посту.
 
+    ВНИМАНИЕ: Данное представление реализует PUT as create.
+    Если объект не найден, он будет автоматически создан при выполнении PUT-запроса.
+    """
+
+    serializer_class = serializers.AddRatingSerializer
+
+    def get_object(self):
         # Получаем текущий рейтинг пользователя для указанного IP-адреса и поста,
         # если он существует в базе данных. В противном случае возвращает None
-        existing_rating = service_rating.existing_rating
+        return self.service_rating.existing_rating
 
-        # Сериализуем рейтинг для добавления/обновления
-        rating_serializer = serializers.AddRatingSerializer(instance=existing_rating, data=request.data)
+    def perform_update(self, serializer):
+        # Обновляем рейтинг пользователя на основе выбранной оценки
+        # и получаем соответствующее сообщение и статусный код для совершённого действия
+        self.message, self.status_code = self.service_rating.update_author_rating_with_return_message_and_status_code()
 
-        if rating_serializer.is_valid():
+        serializer.save(ip=self.kwargs['ip'])
 
-            # Обновляем рейтинг пользователя на основе выбранной оценки
-            # и получаем соответствующее сообщение и статусный код для совершённого действия
-            message, status_code = service_rating.update_author_rating_with_return_message_and_status_code()
+    def update(self, request, *args, **kwargs):
+        # Получаем IP пользователя
+        self.kwargs['ip'] = get_client_ip(request)
 
-            rating_serializer.save(ip=ip)
+        # Создаём объект класса для работы с рейтингом
+        self.service_rating = ServiceUserRating(
+            self.kwargs['ip'], post_id=request.data['post'], mark_id=request.data['mark']
+        )
 
-            return Response({'message': _(message)}, status=status_code)
-
-        return Response(rating_serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+        super().update(request, *args, **kwargs)
+        return Response({'message': _(self.message)}, status=self.status_code)
 
 
 class TopPostsView(APIView):
