@@ -1,8 +1,9 @@
 from django.utils.translation import gettext as _
-from rest_framework import generics, status
+from rest_framework import generics, mixins, status
 
 # from rest_framework.request import Request
 from rest_framework.response import Response
+from rest_framework.viewsets import GenericViewSet
 
 from blog_by_me_DRF.settings import KEY_ABOUT
 from company.serializers import AboutSerializer, ContactSerializer
@@ -21,7 +22,16 @@ from services.company.send_mail import send
 #         return Response(serializer.data)
 
 
-class AboutView(generics.RetrieveAPIView):
+# class AboutView(generics.RetrieveAPIView):
+#     """Вывод информации о компании"""
+#
+#     serializer_class = AboutSerializer
+#
+#     def get_object(self):
+#         return get_cached_objects_or_queryset(KEY_ABOUT)
+
+
+class AboutViewSet(mixins.RetrieveModelMixin, GenericViewSet):
     """Вывод информации о компании"""
 
     serializer_class = AboutSerializer
