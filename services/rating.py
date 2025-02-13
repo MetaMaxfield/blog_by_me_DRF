@@ -2,20 +2,8 @@ from django.utils.translation import gettext as _
 from rest_framework import status
 from rest_framework.exceptions import ValidationError
 
-from blog.models import Mark, Post, Rating
+from blog.models import Mark, Rating
 from users.models import User
-
-
-def has_user_rated_post(received_ip: str, post: Post) -> int | None:
-    """
-    Определяет устанавливал ли пользователь рейтинг к посту
-    и возвращает id оценки
-    """
-    try:
-        user_rating = Mark.objects.get(rating_mark__ip=received_ip, rating_mark__post=post).id
-    except Mark.DoesNotExist:
-        user_rating = None
-    return user_rating
 
 
 class ServiceUserRating:
