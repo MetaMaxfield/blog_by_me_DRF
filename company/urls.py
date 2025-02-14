@@ -5,5 +5,6 @@ from company import views
 urlpatterns = [
     # path('about/', views.AboutView.as_view()),
     path('about/', views.AboutViewSet.as_view({'get': 'retrieve'})),
-    path('contact/', views.ContactView.as_view()),
+    # path('contact/', views.ContactView.as_view()),
+    path('contact/', views.ContactViewSet.as_view({'post': 'create'})),
 ]

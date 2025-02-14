@@ -1,5 +1,5 @@
 from django.utils.translation import gettext as _
-from rest_framework import generics, mixins, status
+from rest_framework import mixins, status  # , generics
 
 # from rest_framework.request import Request
 from rest_framework.response import Response
@@ -54,7 +54,23 @@ class AboutViewSet(mixins.RetrieveModelMixin, GenericViewSet):
 #         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 
-class ContactView(generics.CreateAPIView):
+# class ContactView(generics.CreateAPIView):
+#     """Добавление сообщения обратной связи"""
+#
+#     serializer_class = ContactSerializer
+#
+#     def perform_create(self, serializer):
+#         serializer.save()
+#         send(serializer.validated_data['email'])
+#
+#     def create(self, request, *args, **kwargs):
+#         super().create(request, *args, **kwargs)
+#         return Response(
+#             {'message': _('Сообщение успешно отправлено администрации проекта.')}, status=status.HTTP_201_CREATED
+#         )
+
+
+class ContactViewSet(mixins.CreateModelMixin, GenericViewSet):
     """Добавление сообщения обратной связи"""
 
     serializer_class = ContactSerializer
