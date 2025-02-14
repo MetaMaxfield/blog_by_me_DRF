@@ -1,5 +1,3 @@
-from typing import Dict, Union
-
 from django.core.cache import cache
 from django.db.models import QuerySet
 
@@ -12,9 +10,7 @@ def _get_cache_time(qs_key: str) -> int:
     return settings.CACHE_TIMES.get(qs_key, 300)
 
 
-def get_cached_objects_or_queryset(
-    qs_key: str, **kwargs: Dict[str, Union[str, int]]
-) -> QuerySet | settings.ObjectModel:
+def get_cached_objects_or_queryset(qs_key: str, **kwargs: str | int) -> QuerySet | settings.ObjectModel:
     """
     Получения кэша или вызов QS
 
