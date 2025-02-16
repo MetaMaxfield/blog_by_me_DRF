@@ -56,10 +56,10 @@ class PostsView(generics.ListAPIView):
 class SearchPostView(PostsView):
     """Вывод результатов поиска постов блога"""
 
-    def get(self, request, *args, **kwargs):
+    def list(self, request, *args, **kwargs):
         self.kwargs['q'] = self.request.query_params.get('q')
         validators.validate_q_param(self.kwargs['q'])
-        return super().get(request, *args, **kwargs)
+        return super().list(request, *args, **kwargs)
 
     def filter_queryset(self, queryset):
         return search.search_by_q(self.kwargs['q'], queryset, self.request.LANGUAGE_CODE)
@@ -84,9 +84,9 @@ class SearchPostView(PostsView):
 class FilterDatePostsView(PostsView):
     """Вывод постов с фильтрацией по дате"""
 
-    def get(self, request, *args, **kwargs):
+    def list(self, request, *args, **kwargs):
         validators.validate_date_format(self.kwargs['date_post'])
-        return super().get(request, *args, **kwargs)
+        return super().list(request, *args, **kwargs)
 
     def filter_queryset(self, queryset):
         return search.search_by_date(queryset, self.kwargs['date_post'])
@@ -113,27 +113,6 @@ class FilterTagPostsView(PostsView):
         return search.search_by_tag(queryset, self.kwargs['tag_slug'])
 
 
-# class AddCommentView(APIView):
-#     """Добавление комментария к посту"""
-#
-#     def post(self, request: Request) -> Response:
-#         comment = serializers.AddCommentSerializer(data=request.data)
-#         if comment.is_valid():
-#             comment.save()
-#             return Response({'message': _('Комментарий успешно добавлен.')}, status=status.HTTP_201_CREATED)
-#         return Response(comment.errors, status=status.HTTP_400_BAD_REQUEST)
-
-
-class AddCommentView(generics.CreateAPIView):
-    """Добавление комментария к посту"""
-
-    serializer_class = serializers.AddCommentSerializer
-
-    def create(self, request, *args, **kwargs):
-        super().create(request, *args, **kwargs)
-        return Response({'message': _('Комментарий успешно добавлен.')}, status=status.HTTP_201_CREATED)
-
-
 # class PostDetailView(APIView):
 #     """Вывод отдельного поста"""
 #
@@ -152,8 +131,54 @@ class PostDetailView(generics.RetrieveAPIView):
         return caching.get_cached_objects_or_queryset(settings.KEY_POST_DETAIL, slug=self.kwargs['slug'])
 
 
+# class TopPostsView(APIView):
+#     """Вывод трёх постов с наивысшим рейтингом"""
+#
+#     def get(self, request: Request) -> Response:
+#         top_posts = caching.get_cached_objects_or_queryset(settings.KEY_TOP_POSTS)
+#         serializer = serializers.PostsSerializer(top_posts, many=True, fields=('title', 'body', 'url'))
+#         return Response(serializer.data)
+
+
+class TopPostsView(generics.ListAPIView):
+    """Вывод трёх постов с наивысшим рейтингом"""
+
+    serializer_class = serializers.PostsSerializer
+
+    def get_queryset(self):
+        return caching.get_cached_objects_or_queryset(settings.KEY_TOP_POSTS)
+
+    def get_serializer(self, *args, **kwargs):
+        # Добавление 'fields' для выбора сериализуемых полей (динамический выбор полей для сериализации)
+        kwargs['fields'] = ('title', 'body', 'url')
+        return super().get_serializer(*args, **kwargs)
+
+
+# class LastPostsView(APIView):
+#     """Вывод трех последних опубликованных постов"""
+#
+#     def get(self, request: Request) -> Response:
+#         last_posts = caching.get_cached_objects_or_queryset(settings.KEY_LAST_POSTS)
+#         serializer = serializers.PostsSerializer(last_posts, many=True, fields=('image', 'title', 'body', 'url'))
+#         return Response(serializer.data)
+
+
+class LastPostsView(generics.ListAPIView):
+    """Вывод трех последних опубликованных постов"""
+
+    serializer_class = serializers.PostsSerializer
+
+    def get_queryset(self):
+        return caching.get_cached_objects_or_queryset(settings.KEY_LAST_POSTS)
+
+    def get_serializer(self, *args, **kwargs):
+        # Добавление 'fields' для выбора сериализуемых полей (динамический выбор полей для сериализации)
+        kwargs['fields'] = ('image', 'title', 'body', 'url')
+        return super().get_serializer(*args, **kwargs)
+
+
 # class CategoryListView(APIView):
-#     """Вывод списка категорий и постов к ним"""
+#     """Вывод списка категорий"""
 #
 #     def get(self, request: Request) -> Response:
 #         category_list = caching.get_cached_objects_or_queryset(settings.KEY_CATEGORIES_LIST)
@@ -162,7 +187,7 @@ class PostDetailView(generics.RetrieveAPIView):
 
 
 class CategoryListView(generics.ListAPIView):
-    """Вывод списка категорий и постов к ним"""
+    """Вывод списка категорий"""
 
     serializer_class = serializers.CategoryListSerializer
 
@@ -261,50 +286,6 @@ class AddRatingView(generics.UpdateAPIView):
         return Response({'message': _(self.message)}, status=self.status_code)
 
 
-# class TopPostsView(APIView):
-#     """Вывод трёх постов с наивысшим рейтингом"""
-#
-#     def get(self, request: Request) -> Response:
-#         top_posts = caching.get_cached_objects_or_queryset(settings.KEY_TOP_POSTS)
-#         serializer = serializers.PostsSerializer(top_posts, many=True, fields=('title', 'body', 'url'))
-#         return Response(serializer.data)
-
-
-class TopPostsView(generics.ListAPIView):
-    """Вывод трёх постов с наивысшим рейтингом"""
-
-    serializer_class = serializers.PostsSerializer
-
-    def get_queryset(self):
-        return caching.get_cached_objects_or_queryset(settings.KEY_TOP_POSTS)
-
-    def get_serializer(self, *args, **kwargs):
-        kwargs['fields'] = ('title', 'body', 'url')
-        return super().get_serializer(*args, **kwargs)
-
-
-# class LastPostsView(APIView):
-#     """Вывод трех последних опубликованных постов"""
-#
-#     def get(self, request: Request) -> Response:
-#         last_posts = caching.get_cached_objects_or_queryset(settings.KEY_LAST_POSTS)
-#         serializer = serializers.PostsSerializer(last_posts, many=True, fields=('image', 'title', 'body', 'url'))
-#         return Response(serializer.data)
-
-
-class LastPostsView(generics.ListAPIView):
-    """Вывод трех последних опубликованных постов"""
-
-    serializer_class = serializers.PostsSerializer
-
-    def get_queryset(self):
-        return caching.get_cached_objects_or_queryset(settings.KEY_LAST_POSTS)
-
-    def get_serializer(self, *args, **kwargs):
-        kwargs['fields'] = ('image', 'title', 'body', 'url')
-        return super().get_serializer(*args, **kwargs)
-
-
 class DaysInCalendarView(APIView):
     """Вывод дат публикации постов для заданного месяца"""
 
@@ -329,3 +310,24 @@ class TopTagsView(generics.ListAPIView):
 
     def get_queryset(self):
         return caching.get_cached_objects_or_queryset(settings.KEY_ALL_TAGS)
+
+
+# class AddCommentView(APIView):
+#     """Добавление комментария к посту"""
+#
+#     def post(self, request: Request) -> Response:
+#         comment = serializers.AddCommentSerializer(data=request.data)
+#         if comment.is_valid():
+#             comment.save()
+#             return Response({'message': _('Комментарий успешно добавлен.')}, status=status.HTTP_201_CREATED)
+#         return Response(comment.errors, status=status.HTTP_400_BAD_REQUEST)
+
+
+class AddCommentView(generics.CreateAPIView):
+    """Добавление комментария к посту"""
+
+    serializer_class = serializers.AddCommentSerializer
+
+    def create(self, request, *args, **kwargs):
+        super().create(request, *args, **kwargs)
+        return Response({'message': _('Комментарий успешно добавлен.')}, status=status.HTTP_201_CREATED)
