@@ -353,7 +353,43 @@ class VideoViewSet(mixins.ListModelMixin, viewsets.GenericViewSet):
 #         return Response(rating_serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 
-class AddRatingView(generics.UpdateAPIView):
+# class AddRatingView(generics.UpdateAPIView):
+#     """
+#     Добавление рейтинга к посту.
+#
+#     ВНИМАНИЕ: Данное представление реализует PUT as create.
+#     Если объект не найден, он будет автоматически создан при выполнении PUT-запроса.
+#     """
+#
+#     serializer_class = serializers.AddRatingSerializer
+#
+#     def get_object(self):
+#         # Получаем текущий рейтинг пользователя для указанного IP-адреса и поста,
+#         # если он существует в базе данных. В противном случае возвращает None
+#         return self.service_rating.existing_rating
+#
+#     def perform_update(self, serializer):
+#         # Обновляем рейтинг пользователя на основе выбранной оценки
+#         # и получаем соответствующее сообщение и статусный код для совершённого действия
+#         self.message, self.status_code = \
+#             self.service_rating.update_author_rating_with_return_message_and_status_code()
+#
+#         serializer.save(ip=self.kwargs['ip'])
+#
+#     def update(self, request, *args, **kwargs):
+#         # Получаем IP пользователя
+#         self.kwargs['ip'] = get_client_ip(request)
+#
+#         # Создаём объект класса для работы с рейтингом
+#         self.service_rating = ServiceUserRating(
+#             self.kwargs['ip'], post_id=request.data['post'], mark_id=request.data['mark']
+#         )
+#
+#         super().update(request, *args, **kwargs)
+#         return Response({'message': _(self.message)}, status=self.status_code)
+
+
+class RatingViewSet(mixins.UpdateModelMixin, viewsets.GenericViewSet):
     """
     Добавление рейтинга к посту.
 
