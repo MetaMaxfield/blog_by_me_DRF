@@ -19,6 +19,7 @@ urlpatterns = [
     path('top-tags/', views.TopTagsView.as_view()),
     path('add-comment/', views.AddCommentView.as_view()),
     path('add-rating/', views.AddRatingView.as_view()),
-    path('categories/', views.CategoryListView.as_view()),
+    # path('categories/', views.CategoryListView.as_view()),
+    path('categories/', views.CategoryViewSet.as_view({'get': 'list'})),
     path('videos/', views.VideoListView.as_view()),
 ]

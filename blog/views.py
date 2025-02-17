@@ -1,5 +1,5 @@
 from django.utils.translation import gettext as _
-from rest_framework import generics, status, viewsets
+from rest_framework import generics, mixins, status, viewsets
 from rest_framework.decorators import action
 from rest_framework.request import Request
 from rest_framework.response import Response
@@ -269,7 +269,16 @@ class PostViewSet(viewsets.ReadOnlyModelViewSet):
 #         return Response(serializer.data)
 
 
-class CategoryListView(generics.ListAPIView):
+# class CategoryListView(generics.ListAPIView):
+#     """Вывод списка категорий"""
+#
+#     serializer_class = serializers.CategoryListSerializer
+#
+#     def get_queryset(self):
+#         return caching.get_cached_objects_or_queryset(settings.KEY_CATEGORIES_LIST)
+
+
+class CategoryViewSet(mixins.ListModelMixin, viewsets.GenericViewSet):
     """Вывод списка категорий"""
 
     serializer_class = serializers.CategoryListSerializer
