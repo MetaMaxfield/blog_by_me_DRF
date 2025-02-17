@@ -1,5 +1,5 @@
 from django.utils.translation import gettext as _
-from rest_framework import generics, mixins, status, viewsets
+from rest_framework import mixins, status, viewsets  # , generics
 from rest_framework.decorators import action
 from rest_framework.request import Request
 from rest_framework.response import Response
@@ -470,7 +470,17 @@ class TagViewSet(mixins.ListModelMixin, viewsets.GenericViewSet):
 #         return Response(comment.errors, status=status.HTTP_400_BAD_REQUEST)
 
 
-class AddCommentView(generics.CreateAPIView):
+# class AddCommentView(generics.CreateAPIView):
+#     """Добавление комментария к посту"""
+#
+#     serializer_class = serializers.AddCommentSerializer
+#
+#     def create(self, request, *args, **kwargs):
+#         super().create(request, *args, **kwargs)
+#         return Response({'message': _('Комментарий успешно добавлен.')}, status=status.HTTP_201_CREATED)
+
+
+class CommentViewSet(mixins.CreateModelMixin, viewsets.GenericViewSet):
     """Добавление комментария к посту"""
 
     serializer_class = serializers.AddCommentSerializer
