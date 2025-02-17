@@ -441,7 +441,16 @@ class DaysInCalendarView(APIView):
 #         return Response(serializer.data)
 
 
-class TopTagsView(generics.ListAPIView):
+# class TopTagsView(generics.ListAPIView):
+#     """Вывод десяти самых популярных тегов и количества постов к ним"""
+#
+#     serializer_class = serializers.TopTagsSerializer
+#
+#     def get_queryset(self):
+#         return caching.get_cached_objects_or_queryset(settings.KEY_ALL_TAGS)
+
+
+class TagViewSet(mixins.ListModelMixin, viewsets.GenericViewSet):
     """Вывод десяти самых популярных тегов и количества постов к ним"""
 
     serializer_class = serializers.TopTagsSerializer
