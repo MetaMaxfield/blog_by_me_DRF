@@ -21,5 +21,6 @@ urlpatterns = [
     path('add-rating/', views.AddRatingView.as_view()),
     # path('categories/', views.CategoryListView.as_view()),
     path('categories/', views.CategoryViewSet.as_view({'get': 'list'})),
-    path('videos/', views.VideoListView.as_view()),
+    # path('videos/', views.VideoListView.as_view()),
+    path('videos/', views.VideoViewSet.as_view({'get': 'list'})),
 ]

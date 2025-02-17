@@ -298,7 +298,17 @@ class CategoryViewSet(mixins.ListModelMixin, viewsets.GenericViewSet):
 #         return paginator.get_paginated_response(videos_serializer.data)
 
 
-class VideoListView(generics.ListAPIView):
+# class VideoListView(generics.ListAPIView):
+#     """Вывод всех видеозаписей"""
+#
+#     serializer_class = serializers.VideoListSerializer
+#     pagination_class = paginators.LimitOffsetPaginationForVideoList
+#
+#     def get_queryset(self):
+#         return caching.get_cached_objects_or_queryset(settings.KEY_VIDEOS_LIST)
+
+
+class VideoViewSet(mixins.ListModelMixin, viewsets.GenericViewSet):
     """Вывод всех видеозаписей"""
 
     serializer_class = serializers.VideoListSerializer
