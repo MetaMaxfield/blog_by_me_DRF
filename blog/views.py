@@ -1,5 +1,6 @@
 from django.utils.translation import gettext as _
-from rest_framework import generics, status
+from rest_framework import generics, status, viewsets
+from rest_framework.decorators import action
 from rest_framework.request import Request
 from rest_framework.response import Response
 from rest_framework.views import APIView
@@ -22,19 +23,19 @@ from services.rating import ServiceUserRating
 #         return paginator.get_paginated_response(serializer.data)
 
 
-class PostsView(generics.ListAPIView):
-    """Вывод постов блога"""
-
-    serializer_class = serializers.PostsSerializer
-
-    @property
-    def paginator(self):
-        if not hasattr(self, '_paginator'):
-            self._paginator = paginators.get_paginator_for_post_list(self.request.query_params.get('pagination'))
-        return self._paginator
-
-    def get_queryset(self):
-        return caching.get_cached_objects_or_queryset(settings.KEY_POSTS_LIST)
+# class PostsView(generics.ListAPIView):
+#     """Вывод постов блога"""
+#
+#     serializer_class = serializers.PostsSerializer
+#
+#     @property
+#     def paginator(self):
+#         if not hasattr(self, '_paginator'):
+#             self._paginator = paginators.get_paginator_for_post_list(self.request.query_params.get('pagination'))
+#         return self._paginator
+#
+#     def get_queryset(self):
+#         return caching.get_cached_objects_or_queryset(settings.KEY_POSTS_LIST)
 
 
 # class SearchPostView(APIView):
@@ -53,16 +54,16 @@ class PostsView(generics.ListAPIView):
 #         return paginator.get_paginated_response(serializer.data)
 
 
-class SearchPostView(PostsView):
-    """Вывод результатов поиска постов блога"""
-
-    def list(self, request, *args, **kwargs):
-        self.kwargs['q'] = self.request.query_params.get('q')
-        validators.validate_q_param(self.kwargs['q'])
-        return super().list(request, *args, **kwargs)
-
-    def filter_queryset(self, queryset):
-        return search.search_by_q(self.kwargs['q'], queryset, self.request.LANGUAGE_CODE)
+# class SearchPostView(PostsView):
+#     """Вывод результатов поиска постов блога"""
+#
+#     def list(self, request, *args, **kwargs):
+#         self.kwargs['q'] = self.request.query_params.get('q')
+#         validators.validate_q_param(self.kwargs['q'])
+#         return super().list(request, *args, **kwargs)
+#
+#     def filter_queryset(self, queryset):
+#         return search.search_by_q(self.kwargs['q'], queryset, self.request.LANGUAGE_CODE)
 
 
 # class FilterDatePostsView(APIView):
@@ -81,15 +82,15 @@ class SearchPostView(PostsView):
 #         return paginator.get_paginated_response(serializer.data)
 
 
-class FilterDatePostsView(PostsView):
-    """Вывод постов с фильтрацией по дате"""
-
-    def list(self, request, *args, **kwargs):
-        validators.validate_date_format(self.kwargs['date_post'])
-        return super().list(request, *args, **kwargs)
-
-    def filter_queryset(self, queryset):
-        return search.search_by_date(queryset, self.kwargs['date_post'])
+# class FilterDatePostsView(PostsView):
+#     """Вывод постов с фильтрацией по дате"""
+#
+#     def list(self, request, *args, **kwargs):
+#         validators.validate_date_format(self.kwargs['date_post'])
+#         return super().list(request, *args, **kwargs)
+#
+#     def filter_queryset(self, queryset):
+#         return search.search_by_date(queryset, self.kwargs['date_post'])
 
 
 # class FilterTagPostsView(APIView):
@@ -106,11 +107,11 @@ class FilterDatePostsView(PostsView):
 #         return paginator.get_paginated_response(serializer.data)
 
 
-class FilterTagPostsView(PostsView):
-    """Вывод постов с фильтрацией по тегу"""
-
-    def filter_queryset(self, queryset):
-        return search.search_by_tag(queryset, self.kwargs['tag_slug'])
+# class FilterTagPostsView(PostsView):
+#     """Вывод постов с фильтрацией по тегу"""
+#
+#     def filter_queryset(self, queryset):
+#         return search.search_by_tag(queryset, self.kwargs['tag_slug'])
 
 
 # class PostDetailView(APIView):
@@ -122,13 +123,13 @@ class FilterTagPostsView(PostsView):
 #         return Response(serializer.data)
 
 
-class PostDetailView(generics.RetrieveAPIView):
-    """Вывод отдельного поста"""
-
-    serializer_class = serializers.PostDetailSerializer
-
-    def get_object(self):
-        return caching.get_cached_objects_or_queryset(settings.KEY_POST_DETAIL, slug=self.kwargs['slug'])
+# class PostDetailView(generics.RetrieveAPIView):
+#     """Вывод отдельного поста"""
+#
+#     serializer_class = serializers.PostDetailSerializer
+#
+#     def get_object(self):
+#         return caching.get_cached_objects_or_queryset(settings.KEY_POST_DETAIL, slug=self.kwargs['slug'])
 
 
 # class TopPostsView(APIView):
@@ -140,18 +141,18 @@ class PostDetailView(generics.RetrieveAPIView):
 #         return Response(serializer.data)
 
 
-class TopPostsView(generics.ListAPIView):
-    """Вывод трёх постов с наивысшим рейтингом"""
-
-    serializer_class = serializers.PostsSerializer
-
-    def get_queryset(self):
-        return caching.get_cached_objects_or_queryset(settings.KEY_TOP_POSTS)
-
-    def get_serializer(self, *args, **kwargs):
-        # Добавление 'fields' для выбора сериализуемых полей (динамический выбор полей для сериализации)
-        kwargs['fields'] = ('title', 'body', 'url')
-        return super().get_serializer(*args, **kwargs)
+# class TopPostsView(generics.ListAPIView):
+#     """Вывод трёх постов с наивысшим рейтингом"""
+#
+#     serializer_class = serializers.PostsSerializer
+#
+#     def get_queryset(self):
+#         return caching.get_cached_objects_or_queryset(settings.KEY_TOP_POSTS)
+#
+#     def get_serializer(self, *args, **kwargs):
+#         # Добавление 'fields' для выбора сериализуемых полей (динамический выбор полей для сериализации)
+#         kwargs['fields'] = ('title', 'body', 'url')
+#         return super().get_serializer(*args, **kwargs)
 
 
 # class LastPostsView(APIView):
@@ -163,18 +164,100 @@ class TopPostsView(generics.ListAPIView):
 #         return Response(serializer.data)
 
 
-class LastPostsView(generics.ListAPIView):
-    """Вывод трех последних опубликованных постов"""
+# class LastPostsView(generics.ListAPIView):
+#     """Вывод трех последних опубликованных постов"""
+#
+#     serializer_class = serializers.PostsSerializer
+#
+#     def get_queryset(self):
+#         return caching.get_cached_objects_or_queryset(settings.KEY_LAST_POSTS)
+#
+#     def get_serializer(self, *args, **kwargs):
+#         # Добавление 'fields' для выбора сериализуемых полей (динамический выбор полей для сериализации)
+#         kwargs['fields'] = ('image', 'title', 'body', 'url')
+#         return super().get_serializer(*args, **kwargs)
 
-    serializer_class = serializers.PostsSerializer
+
+class PostViewSet(viewsets.ReadOnlyModelViewSet):
+    """
+    Вьюсет для работы с постами блога.
+
+    Поддерживаемые действия:
+    - Вывод списка постов
+    - Поиск постов по запросу
+    - Фильтрация постов по дате
+    - Фильтрация постов по тегу
+    - Вывод отдельного поста
+    - Вывод трёх постов с наивысшим рейтингом
+    - Вывод трёх последних опубликованных постов
+    """
+
+    lookup_field = 'url'
+    lookup_url_kwarg = 'slug'
+
+    @action(detail=False)
+    def search(self, request, *args, **kwargs):
+        self.kwargs['q'] = self.request.query_params.get('q')
+        validators.validate_q_param(self.kwargs['q'])
+        return self.list(request, *args, **kwargs)
+
+    @action(detail=False, url_path=r'date/(?P<date_post>[^/]+)')
+    def filter_by_date(self, request, *args, **kwargs):
+        validators.validate_date_format(self.kwargs['date_post'])
+        return self.list(request, *args, **kwargs)
+
+    @action(detail=False, url_path=r'tag/(?P<tag_slug>[^/]+)')
+    def filter_by_tag(self, request, *args, **kwargs):
+        return self.list(request, *args, **kwargs)
+
+    @action(detail=False, url_path=r'top-posts')
+    def top_posts(self, request, *args, **kwargs):
+        return self.list(request, *args, **kwargs)
+
+    @action(detail=False, url_path=r'last-posts')
+    def last_posts(self, request, *args, **kwargs):
+        return self.list(request, *args, **kwargs)
 
     def get_queryset(self):
-        return caching.get_cached_objects_or_queryset(settings.KEY_LAST_POSTS)
+        if self.action == 'top_posts':
+            return caching.get_cached_objects_or_queryset(settings.KEY_TOP_POSTS)
+        elif self.action == 'last_posts':
+            return caching.get_cached_objects_or_queryset(settings.KEY_LAST_POSTS)
+        else:
+            return caching.get_cached_objects_or_queryset(settings.KEY_POSTS_LIST)
+
+    def filter_queryset(self, queryset):
+        if self.action == 'search':
+            return search.search_by_q(self.kwargs['q'], queryset, self.request.LANGUAGE_CODE)
+        elif self.action == 'filter_by_date':
+            return search.search_by_date(queryset, self.kwargs['date_post'])
+        elif self.action == 'filter_by_tag':
+            return search.search_by_tag(queryset, self.kwargs['tag_slug'])
+        else:
+            return queryset
+
+    def get_object(self):
+        return caching.get_cached_objects_or_queryset(settings.KEY_POST_DETAIL, slug=self.kwargs['slug'])
+
+    @property
+    def paginator(self):
+        # Динамический выбор пагинации через параметр 'pagination'
+        if not hasattr(self, '_paginator'):
+            self._paginator = paginators.get_paginator_for_post_list(self.request.query_params.get('pagination'))
+        return self._paginator
 
     def get_serializer(self, *args, **kwargs):
         # Добавление 'fields' для выбора сериализуемых полей (динамический выбор полей для сериализации)
-        kwargs['fields'] = ('image', 'title', 'body', 'url')
+        if self.action == 'top_posts':
+            kwargs['fields'] = ('title', 'body', 'url')
+        elif self.action == 'last_posts':
+            kwargs['fields'] = ('image', 'title', 'body', 'url')
         return super().get_serializer(*args, **kwargs)
+
+    def get_serializer_class(self):
+        if self.detail:
+            return serializers.PostDetailSerializer
+        return serializers.PostsSerializer
 
 
 # class CategoryListView(APIView):
