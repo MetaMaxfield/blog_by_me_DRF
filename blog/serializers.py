@@ -100,7 +100,7 @@ class AddCommentSerializer(serializers.ModelSerializer):
             raise serializers.ValidationError(_('Нельзя добавлять комментарии третьего уровня вложенности.'))
 
         if not Comment.objects.filter(id=parent.id, post_id=self.initial_data['post']).exists():
-            raise serializers.ValidationError('Нельзя добавлять ответ к комментарию другого поста.')
+            raise serializers.ValidationError(_('Нельзя добавлять ответ к комментарию другого поста.'))
 
         return parent
 
