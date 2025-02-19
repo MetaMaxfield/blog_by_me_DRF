@@ -21,3 +21,15 @@ class LimitOffsetPaginationForVideoList(LimitOffsetPagination):
 
     default_limit = 3
     max_limit = 50
+
+
+def get_paginator_for_post_list(
+    type_pagination: str | None = None,
+) -> PageNumberPagination | CursorPaginationForPostsInCategoryList:
+    """
+    Возвращает экземпляр пагинации для списка постов в зависимости от типа пагинации.
+    Если передан 'cursor', возвращается курсорная пагинация, по умолчанию — постраничная.
+    """
+    if type_pagination == 'cursor':
+        return CursorPaginationForPostsInCategoryList()
+    return PageNumberPaginationForPosts()

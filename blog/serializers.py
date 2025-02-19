@@ -3,7 +3,8 @@ from django.utils.translation import gettext as _
 from rest_framework import serializers
 from taggit.models import Tag
 
-from blog.models import Category, Comment, Post, Rating, Video
+from blog.models import Category, Comment, Mark, Post, Rating, Video
+from services.client_ip import get_client_ip
 from users.serializers import AuthorDetailSerializer
 
 
@@ -91,16 +92,21 @@ class AddCommentSerializer(serializers.ModelSerializer):
 
     def validate_parent(self, parent):
         """
-        Проверяет, что родительский комментарий не имеет собственного родителя
-        (исключение третьего уровня вложенности комментариев)
+        Проверяет, что:
+        - Родительский комментарий не имеет собственного родителя (ограничение вложенности комментариев до 2 уровня)
+        - Ответ можно добавить только к комментарию, который принадлежит тому же посту, что и сам ответ
         """
         if parent and parent.parent:
             raise serializers.ValidationError(_('Нельзя добавлять комментарии третьего уровня вложенности.'))
+
+        if not Comment.objects.filter(id=parent.id, post_id=self.initial_data['post']).exists():
+            raise serializers.ValidationError('Нельзя добавлять ответ к комментарию другого поста.')
+
         return parent
 
     class Meta:
         model = Comment
-        fields = '__all__'
+        exclude = ('active',)
 
 
 class PostDetailSerializer(TagsSerializerMixin, serializers.ModelSerializer):
@@ -111,7 +117,7 @@ class PostDetailSerializer(TagsSerializerMixin, serializers.ModelSerializer):
     video = VideoDetailSerializer(read_only=True)
     comments = serializers.SerializerMethodField()
     ncomments = serializers.IntegerField()
-    user_rating = serializers.IntegerField()
+    user_rating = serializers.SerializerMethodField()
 
     def get_comments(self, obj):
         """
@@ -119,6 +125,18 @@ class PostDetailSerializer(TagsSerializerMixin, serializers.ModelSerializer):
         используя предзагруженные данные в атрибуте 'prefetched_comments1'
         """
         return CommentsSerializer(obj.prefetched_comments1, context=self.context, read_only=True, many=True).data
+
+    def get_user_rating(self, obj):
+        """
+        Определяет устанавливал ли пользователь рейтинг к посту
+        и возвращает id оценки или None
+        """
+        received_ip = get_client_ip(self.context['request'])
+        try:
+            user_rating = Mark.objects.get(rating_mark__ip=received_ip, rating_mark__post=obj).id
+        except Mark.DoesNotExist:
+            user_rating = None
+        return user_rating
 
     def __init__(self, *args, **kwargs):
         fields = kwargs.pop('fields', None)
