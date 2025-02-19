@@ -92,11 +92,16 @@ class AddCommentSerializer(serializers.ModelSerializer):
 
     def validate_parent(self, parent):
         """
-        Проверяет, что родительский комментарий не имеет собственного родителя
-        (исключение третьего уровня вложенности комментариев)
+        Проверяет, что:
+        - Родительский комментарий не имеет собственного родителя (ограничение вложенности комментариев до 2 уровня)
+        - Ответ можно добавить только к комментарию, который принадлежит тому же посту, что и сам ответ
         """
         if parent and parent.parent:
             raise serializers.ValidationError(_('Нельзя добавлять комментарии третьего уровня вложенности.'))
+
+        if not Comment.objects.filter(id=parent.id, post_id=self.initial_data['post']).exists():
+            raise serializers.ValidationError('Нельзя добавлять ответ к комментарию другого поста.')
+
         return parent
 
     class Meta:
