@@ -79,6 +79,7 @@ INSTALLED_APPS = [
     'django.contrib.messages',
     'django.contrib.staticfiles',
     'rest_framework',
+    'corsheaders',
     'debug_toolbar',
     'taggit',
     'phonenumber_field',
@@ -97,6 +98,7 @@ MIDDLEWARE = [
     'django.contrib.sessions.middleware.SessionMiddleware',
     'blog_by_me_DRF.middleware.ForceInRussian',
     'django.middleware.locale.LocaleMiddleware',
+    'corsheaders.middleware.CorsMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
@@ -197,6 +199,9 @@ LOCALE_PATHS = (os.path.join(BASE_DIR, 'locale/'),)
 # Логическое значение, учитывающее часовой пояс
 USE_TZ = True
 
+
+# Список источников, которым разрешено делать межсайтовые HTTP-запросы
+CORS_ALLOWED_ORIGINS = ['http://localhost:8080', 'http://127.0.0.1:8000']
 
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/4.2/howto/static-files/
