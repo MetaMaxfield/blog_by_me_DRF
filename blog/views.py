@@ -7,7 +7,7 @@ from rest_framework.views import APIView
 
 from blog import serializers
 from blog_by_me_DRF import settings
-from services import caching, search
+from services import caching, queryset, search
 from services.blog import paginators, validators
 from services.client_ip import get_client_ip
 from services.rating import ServiceUserRating
@@ -459,8 +459,15 @@ class TagViewSet(mixins.ListModelMixin, viewsets.GenericViewSet):
         return caching.get_cached_objects_or_queryset(settings.KEY_ALL_TAGS)
 
 
-# class AddCommentView(APIView):
-#     """Добавление комментария к посту"""
+# class CommentListCreateView(APIView):
+#     """Получение списка комментариев и добавление нового комментария к заданному посту"""
+#
+#     def get(self, request: Request):
+#         post_id = request.query_params.get('post_id')
+#         validators.validate_post_id_param(post_id)
+#         comments = queryset.qs_definition(settings.KEY_COMMENTS_LIST, post_id=post_id)
+#         serializer = serializers.CommentsSerializer(comments, many=True)
+#         return Response(serializer.data)
 #
 #     def post(self, request: Request) -> Response:
 #         comment = serializers.AddCommentSerializer(data=request.data)
@@ -470,20 +477,44 @@ class TagViewSet(mixins.ListModelMixin, viewsets.GenericViewSet):
 #         return Response(comment.errors, status=status.HTTP_400_BAD_REQUEST)
 
 
-# class AddCommentView(generics.CreateAPIView):
-#     """Добавление комментария к посту"""
+# class CommentListCreateView(generics.ListCreateAPIView):
+#     """Получение списка комментариев и добавление нового комментария к заданному посту"""
 #
-#     serializer_class = serializers.AddCommentSerializer
+#     def get_serializer_class(self):
+#         if self.request.method == 'GET':
+#             return serializers.CommentsSerializer
+#         elif self.request.method == 'POST':
+#             return serializers.AddCommentSerializer
+#
+#     def get_queryset(self):
+#         return queryset.qs_definition(settings.KEY_COMMENTS_LIST, post_id=self.kwargs['post_id'])
+#
+#     def list(self, request, *args, **kwargs):
+#         self.kwargs['post_id'] = request.query_params.get('post_id')
+#         validators.validate_post_id_param(self.kwargs['post_id'])
+#         return super().list(request, *args, **kwargs)
 #
 #     def create(self, request, *args, **kwargs):
 #         super().create(request, *args, **kwargs)
 #         return Response({'message': _('Комментарий успешно добавлен.')}, status=status.HTTP_201_CREATED)
 
 
-class CommentViewSet(mixins.CreateModelMixin, viewsets.GenericViewSet):
-    """Добавление комментария к посту"""
+class CommentViewSet(mixins.ListModelMixin, mixins.CreateModelMixin, viewsets.GenericViewSet):
+    """Получение списка комментариев и добавление нового комментария к заданному посту"""
 
-    serializer_class = serializers.AddCommentSerializer
+    def get_serializer_class(self):
+        if self.action == 'list':
+            return serializers.CommentsSerializer
+        elif self.action == 'create':
+            return serializers.AddCommentSerializer
+
+    def get_queryset(self):
+        return queryset.qs_definition(settings.KEY_COMMENTS_LIST, post_id=self.kwargs['post_id'])
+
+    def list(self, request, *args, **kwargs):
+        self.kwargs['post_id'] = request.query_params.get('post_id')
+        validators.validate_post_id_param(self.kwargs['post_id'])
+        return super().list(request, *args, **kwargs)
 
     def create(self, request, *args, **kwargs):
         super().create(request, *args, **kwargs)

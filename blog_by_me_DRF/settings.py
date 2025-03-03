@@ -249,6 +249,7 @@ KEY_TOP_POSTS = os.getenv('KEY_TOP_POSTS')
 KEY_LAST_POSTS = os.getenv('KEY_LAST_POSTS')
 KEY_ALL_TAGS = os.getenv('KEY_ALL_TAGS')
 KEY_POSTS_CALENDAR = os.getenv('KEY_POSTS_CALENDAR')
+KEY_COMMENTS_LIST = os.getenv('KEY_COMMENTS_LIST')
 
 
 # Ключ-префикс для других ключей

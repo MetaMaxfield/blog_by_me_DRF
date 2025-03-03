@@ -117,16 +117,8 @@ class PostDetailSerializer(TagsSerializerMixin, serializers.ModelSerializer):
     category = serializers.SlugRelatedField(slug_field='name', read_only=True)
     author = AuthorDetailSerializer(fields=('id', 'username'))
     video = VideoDetailSerializer(read_only=True)
-    comments = serializers.SerializerMethodField()
     ncomments = serializers.IntegerField()
     user_rating = serializers.SerializerMethodField()
-
-    def get_comments(self, obj):
-        """
-        Возвращает список комментариев для поста,
-        используя предзагруженные данные в атрибуте 'prefetched_comments1'
-        """
-        return CommentsSerializer(obj.prefetched_comments1, context=self.context, read_only=True, many=True).data
 
     def get_user_rating(self, obj):
         """

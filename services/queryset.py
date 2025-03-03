@@ -33,15 +33,6 @@ def _qs_post_detail(slug: str) -> QuerySet:
         Post.objects.filter(draft=False, publish__lte=timezone.now())
         .prefetch_related(
             Prefetch('author', User.objects.only('id', 'username')),
-            Prefetch(
-                'comments',
-                Comment.objects.filter(parent=None)
-                .prefetch_related(
-                    Prefetch('children', Comment.objects.defer('email', 'active'), to_attr='prefetched_comments2')
-                )
-                .defer('email', 'active'),
-                to_attr='prefetched_comments1',
-            ),
         )
         .defer('draft')
         .annotate(
@@ -145,6 +136,17 @@ def _qs_days_posts_in_current_month(year: int, month: int) -> QuerySet:
     ).dates('publish', 'day')
 
 
+def _qs_comments_list(post_id: str) -> QuerySet:
+    """QS с комментариями заданного поста"""
+    return (
+        Comment.objects.filter(post_id=post_id, parent=None)
+        .prefetch_related(
+            Prefetch('children', Comment.objects.defer('email', 'active'), to_attr='prefetched_comments2')
+        )
+        .defer('email', 'active')
+    )
+
+
 def not_definite_qs(**kwargs: Any) -> NoReturn:
     """Вызов исключения если ключ для получения queryset не найден"""
     raise Exception('Ключ для получения queryset не найден.')
@@ -164,6 +166,7 @@ def qs_definition(qs_key: str, **kwargs: str | int) -> Union[QuerySet, settings.
         settings.KEY_LAST_POSTS: _qs_last_posts,
         settings.KEY_ALL_TAGS: _qs_top_tags,
         settings.KEY_POSTS_CALENDAR: _qs_days_posts_in_current_month,
+        settings.KEY_COMMENTS_LIST: _qs_comments_list,
     }
     definite_qs = qs_keys.get(qs_key, not_definite_qs)
     return definite_qs(**kwargs) if kwargs else definite_qs()
