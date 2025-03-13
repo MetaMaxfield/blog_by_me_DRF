@@ -17,13 +17,13 @@ class ServiceUserRating:
     RATING_UPDATE_MESSAGE = _('Рейтинг успешно обновлен.')
     RATING_CREATE_MESSAGE = _('Рейтинг успешно добавлен.')
 
-    def __init__(self, ip: str, post_id: int, mark_id: int) -> None:
+    def __init__(self, ip: str, post_slug: str, mark_id: int) -> None:
         """
         Инициализация
 
         Атрибуты объекта:
         self.ip: Сохраняет IP-адрес оценивающего пользователя.
-        self.post_id: Сохраняет идентификатор поста.
+        self.post_slug: Сохраняет идентификатор поста.
         self.mark_id: Сохраняет идентификатор оценки.
         self._existing_rating: Внутренний атрибут, который может иметь три значения:
             - False: Запрос к базе данных на получение рейтинга ещё не выполнялся.
@@ -31,7 +31,7 @@ class ServiceUserRating:
             - None: Если рейтинг в базе данных не найден.
         """
         self.ip = ip
-        self.post_id = post_id
+        self.post_slug = post_slug
         self.mark_id = mark_id
 
         self._existing_rating = False
@@ -57,7 +57,7 @@ class ServiceUserRating:
         """
         if self._existing_rating is False:
             try:
-                self._existing_rating = Rating.objects.get(ip=self.ip, post=self.post_id)
+                self._existing_rating = Rating.objects.get(ip=self.ip, post__url=self.post_slug)
 
             except Rating.DoesNotExist:
                 self._existing_rating = None
@@ -81,7 +81,7 @@ class ServiceUserRating:
         Если автор не найден, вызывает исключение ValidationError
         """
         try:
-            author = User.objects.get(post_author__id=self.post_id)
+            author = User.objects.get(post_author__url=self.post_slug)
             return author
         except User.DoesNotExist:
             raise ValidationError({'detail': _('Пользователь, связанный с указанным id поста, не найден.')})

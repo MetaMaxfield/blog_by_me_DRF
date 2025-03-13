@@ -3,8 +3,9 @@ from django.utils.translation import gettext as _
 from rest_framework import serializers
 from taggit.models import Tag
 
-from blog.models import Category, Comment, Mark, Post, Rating, Video
-from services.client_ip import get_client_ip
+from blog.models import Category, Comment, Post, Rating, Video
+from blog_by_me_DRF.settings import KEY_POSTS_LIST
+from services.queryset import qs_definition
 from users.serializers import AuthorDetailSerializer
 
 
@@ -118,19 +119,6 @@ class PostDetailSerializer(TagsSerializerMixin, serializers.ModelSerializer):
     author = AuthorDetailSerializer(fields=('id', 'username'))
     video = VideoDetailSerializer(read_only=True)
     ncomments = serializers.IntegerField()
-    user_rating = serializers.SerializerMethodField()
-
-    def get_user_rating(self, obj):
-        """
-        Определяет устанавливал ли пользователь рейтинг к посту
-        и возвращает id оценки или None
-        """
-        received_ip = get_client_ip(self.context['request'])
-        try:
-            user_rating = Mark.objects.get(rating_mark__ip=received_ip, rating_mark__post=obj).id
-        except Mark.DoesNotExist:
-            user_rating = None
-        return user_rating
 
     def __init__(self, *args, **kwargs):
         fields = kwargs.pop('fields', None)
@@ -167,18 +155,28 @@ class VideoListSerializer(serializers.ModelSerializer):
         exclude = ('title_ru', 'title_en', 'description_ru', 'description_en')
 
 
+class RatingDetailSerializer(serializers.ModelSerializer):
+    """Отдельный объект рейтинга"""
+
+    class Meta:
+        model = Rating
+        fields = ('mark',)
+
+
 class AddRatingSerializer(serializers.ModelSerializer):
-    """Добавление рейтинга к посту"""
+    """Создание/обновление рейтинга к посту"""
+
+    # queryset обеспечивает валидацию: запрещает добавлять оценку к черновикам и неопубликованным постам
+    post = serializers.SlugRelatedField(slug_field='url', queryset=qs_definition(KEY_POSTS_LIST))
 
     class Meta:
         model = Rating
         fields = ('mark', 'post')
 
-    def validate(self, attrs):
-        """Запрет на добавление оценки к черновым или ещё не опубликованным постам"""
-        if attrs['post'].draft or attrs['post'].publish > timezone.now():
-            raise serializers.ValidationError(_('Невозможно оставить оценку для данного поста.'))
-        return attrs
+    def to_internal_value(self, data):
+        """Автоматически добавляет slug в поле post из контекста"""
+        data['post'] = self.context['slug']
+        return super().to_internal_value(data)
 
     def create(self, validated_data):
         return Rating.objects.create(
