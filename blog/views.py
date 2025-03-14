@@ -330,7 +330,10 @@ class VideoViewSet(mixins.ListModelMixin, viewsets.GenericViewSet):
 #         """Получение ip пользователя и создание объекта класса для работы с рейтингом"""
 #         self.ip = get_client_ip(request)
 #         self.service_rating = ServiceUserRating(
-#             ip=self.ip, post_slug=slug, mark_id=request.data.get('mark')
+#             ip=self.kwargs['ip'],
+#             post_slug=kwargs['slug'],
+#             mark_id=request.data.get('mark'),
+#             http_method=request.method
 #         )
 #
 #     def get(self, request: Request, slug: str) -> Response:
@@ -371,7 +374,10 @@ class VideoViewSet(mixins.ListModelMixin, viewsets.GenericViewSet):
 #         """Получение ip пользователя и создание объекта класса для работы с рейтингом"""
 #         self.kwargs['ip'] = get_client_ip(request)
 #         self.service_rating = ServiceUserRating(
-#             ip=self.kwargs['ip'], post_slug=kwargs['slug'], mark_id=request.data.get('mark')
+#             ip=self.kwargs['ip'],
+#             post_slug=kwargs['slug'],
+#             mark_id=request.data.get('mark'),
+#             http_method=request.method
 #         )
 #
 #     def retrieve(self, request, *args, **kwargs):
@@ -424,7 +430,7 @@ class RatingViewSet(mixins.RetrieveModelMixin, mixins.UpdateModelMixin, viewsets
         """Получение ip пользователя и создание объекта класса для работы с рейтингом"""
         self.kwargs['ip'] = get_client_ip(request)
         self.service_rating = ServiceUserRating(
-            ip=self.kwargs['ip'], post_slug=kwargs['slug'], mark_id=request.data.get('mark')
+            ip=self.kwargs['ip'], post_slug=kwargs['slug'], mark_id=request.data.get('mark'), http_method=request.method
         )
 
     def retrieve(self, request, *args, **kwargs):

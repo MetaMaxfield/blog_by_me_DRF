@@ -240,6 +240,7 @@ INTERNAL_IPS = [
 # и определения необходимого запроса к БД (функция qs_definition)
 KEY_POSTS_LIST = os.getenv('KEY_POSTS_LIST')
 KEY_POST_DETAIL = os.getenv('KEY_POST_DETAIL')
+KEY_RATING_DETAIL = os.getenv('KEY_RATING_DETAIL')
 KEY_CATEGORIES_LIST = os.getenv('KEY_CATEGORIES_LIST')
 KEY_VIDEOS_LIST = os.getenv('KEY_VIDEOS_LIST')
 KEY_ABOUT = os.getenv('KEY_ABOUT')

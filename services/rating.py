@@ -3,6 +3,8 @@ from rest_framework import status
 from rest_framework.exceptions import ValidationError
 
 from blog.models import Mark, Rating
+from blog_by_me_DRF.settings import KEY_RATING_DETAIL
+from services.queryset import qs_definition
 from users.models import User
 
 
@@ -17,7 +19,7 @@ class ServiceUserRating:
     RATING_UPDATE_MESSAGE = _('Рейтинг успешно обновлен.')
     RATING_CREATE_MESSAGE = _('Рейтинг успешно добавлен.')
 
-    def __init__(self, ip: str, post_slug: str, mark_id: int) -> None:
+    def __init__(self, ip: str, post_slug: str, mark_id: int, http_method: str) -> None:
         """
         Инициализация
 
@@ -25,6 +27,9 @@ class ServiceUserRating:
         self.ip: Сохраняет IP-адрес оценивающего пользователя.
         self.post_slug: Сохраняет идентификатор поста.
         self.mark_id: Сохраняет идентификатор оценки.
+        self.http_method: Определяет логику отсутствия рейтинга в сервисном слое:
+            - Http404 для GET (retrieve)
+            - None для POST (create/update)
         self._existing_rating: Внутренний атрибут, который может иметь три значения:
             - False: Запрос к базе данных на получение рейтинга ещё не выполнялся.
             - Rating: Экземпляр модели Rating, если рейтинг найден в базе данных.
@@ -33,6 +38,7 @@ class ServiceUserRating:
         self.ip = ip
         self.post_slug = post_slug
         self.mark_id = mark_id
+        self.http_method = http_method
 
         self._existing_rating = False
 
@@ -41,8 +47,7 @@ class ServiceUserRating:
         """
         Применяется как атрибут (используйте .existing_rating).
 
-        Возвращает текущий рейтинг пользователя к посту,
-        если он существует в базе данных. В противном случае возвращает None.
+        Возвращает текущий рейтинг пользователя к посту.
 
         Особенности использования:
             1. Может быть вызван отдельно в представлении для проверки наличия существующего
@@ -56,12 +61,9 @@ class ServiceUserRating:
             - Если запрос уже выполнялся, возвращается ранее полученное значение _existing_rating.
         """
         if self._existing_rating is False:
-            try:
-                self._existing_rating = Rating.objects.get(ip=self.ip, post__url=self.post_slug)
-
-            except Rating.DoesNotExist:
-                self._existing_rating = None
-
+            self._existing_rating = qs_definition(
+                KEY_RATING_DETAIL, ip=self.ip, post_slug=self.post_slug, http_method=self.http_method
+            )
         return self._existing_rating
 
     def _get_mark(self) -> Mark:

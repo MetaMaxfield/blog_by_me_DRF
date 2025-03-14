@@ -2,11 +2,12 @@ from typing import Any, NoReturn, Union
 
 from django.db.models import Count, Prefetch, Q, QuerySet, Sum
 from django.db.models.functions import Coalesce
+from django.http import Http404
 from django.utils import timezone
 from rest_framework.generics import get_object_or_404
 from taggit.models import Tag, TaggedItem
 
-from blog.models import Category, Comment, Post, Video
+from blog.models import Category, Comment, Post, Rating, Video
 from blog_by_me_DRF import settings
 from company.models import About
 from users.models import User
@@ -40,6 +41,22 @@ def _qs_post_detail(slug: str) -> QuerySet:
         ),
         url=slug,
     )
+
+
+def _qs_rating_detail(ip: str, post_slug: str, http_method: str) -> Rating | None:
+    """
+    Возвращает текущий рейтинг пользователя к посту, если он существует в базе данных.
+    В случае его отсутствия, в зависимости от HTTP-метода запроса:
+        - Для POST-запросов (create/update) возвращает None, позволяя создать новый рейтинг
+        - Для GET-запросов (retrieve) предполагает вызов исключения (Http404), если рейтинг не найден
+    """
+    try:
+        rating = Rating.objects.get(ip=ip, post__url=post_slug, post__draft=False, post__publish__lte=timezone.now())
+    except Rating.DoesNotExist:
+        if http_method == 'GET':
+            raise Http404
+        rating = None
+    return rating
 
 
 def _qs_categories_list() -> QuerySet:
