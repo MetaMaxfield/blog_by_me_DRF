@@ -12,7 +12,9 @@ https://docs.djangoproject.com/en/4.2/ref/settings/
 
 import os
 from pathlib import Path
+from typing import TypeVar
 
+from django.db.models import Model
 from django.utils.translation import gettext_lazy as _
 from dotenv import load_dotenv
 
@@ -247,6 +249,7 @@ KEY_TOP_POSTS = os.getenv('KEY_TOP_POSTS')
 KEY_LAST_POSTS = os.getenv('KEY_LAST_POSTS')
 KEY_ALL_TAGS = os.getenv('KEY_ALL_TAGS')
 KEY_POSTS_CALENDAR = os.getenv('KEY_POSTS_CALENDAR')
+KEY_COMMENTS_LIST = os.getenv('KEY_COMMENTS_LIST')
 
 
 # Ключ-префикс для других ключей
@@ -402,3 +405,16 @@ TITLE_AUTHOR_GROUP = _('Автор')
 # Названия оценок для рейтинга постов
 TITLE_LIKE_MARK = 'Лайк'
 TITLE_DISLIKE_MARK = 'Дизлайк'
+
+
+# Настройка библиотеки "django-taggit" для игнорирования регистра в тегах
+TAGGIT_CASE_INSENSITIVE = True
+
+
+# Настройки формата телефонных номеров для библиотеки "django-phonenumber-field"
+PHONENUMBER_DEFAULT_FORMAT = 'E164'
+PHONENUMBER_DEFAULT_REGION = 'RU'
+
+
+# Общая аннотация для объектов, наследуемых от базовой модели Django
+ObjectModel = TypeVar('ObjectModel', bound=Model)

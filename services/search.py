@@ -1,16 +1,15 @@
 import datetime
 
 from django.contrib.postgres.search import SearchQuery, SearchRank, SearchVector
+from django.db.models import QuerySet
 from django.utils.translation import gettext as _
 
 from blog_by_me_DRF.settings import LANGUAGES
 from services.exceptions import NoContent
 
 
-def search_by_tag(object_list, tag_slug):
-    """
-    Функция фильтрует записи по тегу
-    """
+def search_by_tag(object_list: QuerySet, tag_slug: str) -> QuerySet | NoContent:
+    """Функция фильтрует записи по тегу"""
 
     post_list = object_list.filter(tags__slug=tag_slug)
 
@@ -19,10 +18,8 @@ def search_by_tag(object_list, tag_slug):
     return post_list
 
 
-def search_by_date(object_list, date):
-    """
-    Функция фильтрует записи по дате
-    """
+def search_by_date(object_list: QuerySet, date: str) -> QuerySet | NoContent:
+    """Функция фильтрует записи по дате"""
 
     format_date = datetime.datetime.strptime(date, '%Y-%m-%d').date()
     post_list = object_list.filter(created__date=format_date)
@@ -32,7 +29,7 @@ def search_by_date(object_list, date):
     return post_list
 
 
-def search_by_q(q, object_list, current_language):
+def search_by_q(q: str, object_list: QuerySet, current_language: str) -> QuerySet | NoContent:
     """
     Поиск по названию и содержанию в зависимости от выбранного языка,
     сортировка результатов поиска с использованием специальных классов для PostgreSQL

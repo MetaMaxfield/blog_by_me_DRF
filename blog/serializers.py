@@ -4,6 +4,8 @@ from rest_framework import serializers
 from taggit.models import Tag
 
 from blog.models import Category, Comment, Post, Rating, Video
+from blog_by_me_DRF.settings import KEY_POSTS_LIST
+from services.queryset import qs_definition
 from users.serializers import AuthorDetailSerializer
 
 
@@ -91,16 +93,23 @@ class AddCommentSerializer(serializers.ModelSerializer):
 
     def validate_parent(self, parent):
         """
-        Проверяет, что родительский комментарий не имеет собственного родителя
-        (исключение третьего уровня вложенности комментариев)
+        Проверяет, что:
+        - Родительский комментарий не имеет собственного родителя (ограничение вложенности комментариев до 2 уровня)
+        - Ответ можно добавить только к комментарию, который принадлежит тому же посту, что и сам ответ
         """
-        if parent and parent.parent:
-            raise serializers.ValidationError(_('Нельзя добавлять комментарии третьего уровня вложенности.'))
+        if parent:
+
+            if parent.parent:
+                raise serializers.ValidationError(_('Нельзя добавлять комментарии третьего уровня вложенности.'))
+
+            if not Comment.objects.filter(id=parent.id, post_id=self.initial_data['post']).exists():
+                raise serializers.ValidationError('Нельзя добавлять ответ к комментарию другого поста.')
+
         return parent
 
     class Meta:
         model = Comment
-        fields = '__all__'
+        exclude = ('active',)
 
 
 class PostDetailSerializer(TagsSerializerMixin, serializers.ModelSerializer):
@@ -109,16 +118,7 @@ class PostDetailSerializer(TagsSerializerMixin, serializers.ModelSerializer):
     category = serializers.SlugRelatedField(slug_field='name', read_only=True)
     author = AuthorDetailSerializer(fields=('id', 'username'))
     video = VideoDetailSerializer(read_only=True)
-    comments = serializers.SerializerMethodField()
     ncomments = serializers.IntegerField()
-    user_rating = serializers.IntegerField()
-
-    def get_comments(self, obj):
-        """
-        Возвращает список комментариев для поста,
-        используя предзагруженные данные в атрибуте 'prefetched_comments1'
-        """
-        return CommentsSerializer(obj.prefetched_comments1, context=self.context, read_only=True, many=True).data
 
     def __init__(self, *args, **kwargs):
         fields = kwargs.pop('fields', None)
@@ -155,18 +155,28 @@ class VideoListSerializer(serializers.ModelSerializer):
         exclude = ('title_ru', 'title_en', 'description_ru', 'description_en')
 
 
+class RatingDetailSerializer(serializers.ModelSerializer):
+    """Отдельный объект рейтинга"""
+
+    class Meta:
+        model = Rating
+        fields = ('mark',)
+
+
 class AddRatingSerializer(serializers.ModelSerializer):
-    """Добавление рейтинга к посту"""
+    """Создание/обновление рейтинга к посту"""
+
+    # queryset обеспечивает валидацию: запрещает добавлять оценку к черновикам и неопубликованным постам
+    post = serializers.SlugRelatedField(slug_field='url', queryset=qs_definition(KEY_POSTS_LIST))
 
     class Meta:
         model = Rating
         fields = ('mark', 'post')
 
-    def validate(self, attrs):
-        """Запрет на добавление оценки к черновым или ещё не опубликованным постам"""
-        if attrs['post'].draft or attrs['post'].publish > timezone.now():
-            raise serializers.ValidationError(_('Невозможно оставить оценку для данного поста.'))
-        return attrs
+    def to_internal_value(self, data):
+        """Автоматически добавляет slug в поле post из контекста"""
+        data['post'] = self.context['slug']
+        return super().to_internal_value(data)
 
     def create(self, validated_data):
         return Rating.objects.create(

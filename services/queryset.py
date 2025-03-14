@@ -1,4 +1,6 @@
-from django.db.models import Count, Prefetch, Q, Sum
+from typing import Any, NoReturn, Union
+
+from django.db.models import Count, Prefetch, Q, QuerySet, Sum
 from django.db.models.functions import Coalesce
 from django.utils import timezone
 from rest_framework.generics import get_object_or_404
@@ -10,9 +12,8 @@ from company.models import About
 from users.models import User
 
 
-def _qs_post_list():
+def _qs_post_list() -> QuerySet:
     """Общий QS с записями блога"""
-
     return (
         Post.objects.filter(draft=False, publish__lte=timezone.now())
         .select_related('category')
@@ -26,22 +27,12 @@ def _qs_post_list():
     )
 
 
-def _qs_post_detail(slug):
+def _qs_post_detail(slug: str) -> QuerySet:
     """Отдельная запись в блоге"""
-
     return get_object_or_404(
         Post.objects.filter(draft=False, publish__lte=timezone.now())
         .prefetch_related(
             Prefetch('author', User.objects.only('id', 'username')),
-            Prefetch(
-                'comments',
-                Comment.objects.filter(parent=None)
-                .prefetch_related(
-                    Prefetch('children', Comment.objects.defer('email', 'active'), to_attr='prefetched_comments2')
-                )
-                .defer('email', 'active'),
-                to_attr='prefetched_comments1',
-            ),
         )
         .defer('draft')
         .annotate(
@@ -51,15 +42,13 @@ def _qs_post_detail(slug):
     )
 
 
-def _qs_categories_list():
+def _qs_categories_list() -> QuerySet:
     """QS со списком категорий"""
-
     return Category.objects.all()
 
 
-def _qs_videos_list():
+def _qs_videos_list() -> QuerySet:
     """QS со всеми видеозаписями"""
-
     return (
         Video.objects.filter(post_video__draft=False, post_video__publish__lte=timezone.now())
         .select_related('post_video')
@@ -79,23 +68,20 @@ def _qs_videos_list():
     )
 
 
-def _qs_about():
+def _qs_about() -> About:
     """
     Получение данных страницы 'О нас'
     """
-
     return get_object_or_404(About)
 
 
-def _qs_author_list():
+def _qs_author_list() -> QuerySet:
     """QS со всеми пользователями"""
-
     return User.objects.all().only('id', 'username', 'image', 'description')
 
 
-def _qs_author_detail(pk):
+def _qs_author_detail(pk: int) -> User:
     """QS с отдельным автором"""
-
     return get_object_or_404(
         User.objects.annotate(
             nposts=Count('post_author', filter=Q(post_author__draft=False, post_author__publish__lte=timezone.now()))
@@ -117,9 +103,8 @@ def _qs_author_detail(pk):
     )
 
 
-def _qs_top_posts():
+def _qs_top_posts() -> QuerySet:
     """QS с тремя самыми популярными постами"""
-
     return (
         Post.objects.filter(draft=False, publish__lte=timezone.now())
         .only('title', 'body', 'url')
@@ -128,9 +113,8 @@ def _qs_top_posts():
     )
 
 
-def _qs_last_posts():
+def _qs_last_posts() -> QuerySet:
     """QS с последними тремя добавленными постами"""
-
     return (
         Post.objects.filter(draft=False, publish__lte=timezone.now())
         .only('image', 'title', 'body', 'url')
@@ -138,28 +122,37 @@ def _qs_last_posts():
     )
 
 
-def _qs_top_tags():
+def _qs_top_tags() -> QuerySet:
     """QS с десятью популярными тегами по количеству использования"""
-
     return Tag.objects.annotate(
         npost=Count('post_tags', filter=Q(post_tags__draft=False, post_tags__publish__lte=timezone.now()))
     ).order_by('-npost')[:10]
 
 
-def _qs_days_posts_in_current_month(year, month):
+def _qs_days_posts_in_current_month(year: int, month: int) -> QuerySet:
     """Дни публикаций в заданном месяце для календаря"""
-
     return Post.objects.filter(
         draft=False, publish__lte=timezone.now(), publish__year=year, publish__month=month
     ).dates('publish', 'day')
 
 
-def not_definite_qs(**kwargs):
+def _qs_comments_list(post_id: str) -> QuerySet:
+    """QS с комментариями заданного поста"""
+    return (
+        Comment.objects.filter(post_id=post_id, parent=None)
+        .prefetch_related(
+            Prefetch('children', Comment.objects.defer('email', 'active'), to_attr='prefetched_comments2')
+        )
+        .defer('email', 'active')
+    )
+
+
+def not_definite_qs(**kwargs: Any) -> NoReturn:
     """Вызов исключения если ключ для получения queryset не найден"""
     raise Exception('Ключ для получения queryset не найден.')
 
 
-def qs_definition(qs_key, **kwargs):
+def qs_definition(qs_key: str, **kwargs: str | int) -> Union[QuerySet, settings.ObjectModel, NoReturn]:
     """Определение необходимого запроса в БД по ключу"""
     qs_keys = {
         settings.KEY_POSTS_LIST: _qs_post_list,
@@ -173,6 +166,7 @@ def qs_definition(qs_key, **kwargs):
         settings.KEY_LAST_POSTS: _qs_last_posts,
         settings.KEY_ALL_TAGS: _qs_top_tags,
         settings.KEY_POSTS_CALENDAR: _qs_days_posts_in_current_month,
+        settings.KEY_COMMENTS_LIST: _qs_comments_list,
     }
     definite_qs = qs_keys.get(qs_key, not_definite_qs)
     return definite_qs(**kwargs) if kwargs else definite_qs()
