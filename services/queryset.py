@@ -28,7 +28,7 @@ def _qs_post_list() -> QuerySet:
     )
 
 
-def _qs_post_detail(slug: str) -> QuerySet:
+def _qs_post_detail(slug: str) -> Post:
     """Отдельная запись в блоге"""
     return get_object_or_404(
         Post.objects.filter(draft=False, publish__lte=timezone.now())
@@ -174,6 +174,7 @@ def qs_definition(qs_key: str, **kwargs: str | int) -> Union[QuerySet, settings.
     qs_keys = {
         settings.KEY_POSTS_LIST: _qs_post_list,
         settings.KEY_POST_DETAIL: _qs_post_detail,
+        settings.KEY_RATING_DETAIL: _qs_rating_detail,
         settings.KEY_CATEGORIES_LIST: _qs_categories_list,
         settings.KEY_VIDEOS_LIST: _qs_videos_list,
         settings.KEY_ABOUT: _qs_about,
