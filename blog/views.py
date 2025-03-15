@@ -1,6 +1,7 @@
 from django.utils.translation import gettext as _
 from rest_framework import mixins, status, viewsets  # , generics
 from rest_framework.decorators import action
+from rest_framework.renderers import JSONRenderer
 from rest_framework.request import Request
 from rest_framework.response import Response
 from rest_framework.views import APIView
@@ -11,6 +12,7 @@ from services import caching, queryset, search
 from services.blog import paginators, validators
 from services.client_ip import get_client_ip
 from services.rating import ServiceUserRating
+from services.renderer import NoHTMLFormBrowsableAPIRenderer
 
 # class PostsView(APIView):
 #     """Вывод постов блога"""
@@ -370,6 +372,8 @@ class VideoViewSet(mixins.ListModelMixin, viewsets.GenericViewSet):
 #     Если объект не найден, он будет автоматически создан при выполнении POST-запроса.
 #     """
 #
+#     renderer_classes = [JSONRenderer, NoHTMLFormBrowsableAPIRenderer]
+#
 #     def setup_rating_service(self, request, *args, **kwargs):
 #         """Получение ip пользователя и создание объекта класса для работы с рейтингом"""
 #         self.kwargs['ip'] = get_client_ip(request)
@@ -425,6 +429,8 @@ class RatingViewSet(mixins.RetrieveModelMixin, mixins.UpdateModelMixin, viewsets
     ВНИМАНИЕ: Представление реализует UPSERT подход.
     Если объект не найден, он будет автоматически создан при выполнении POST-запроса.
     """
+
+    renderer_classes = [JSONRenderer, NoHTMLFormBrowsableAPIRenderer]
 
     def setup_rating_service(self, request, *args, **kwargs):
         """Получение ip пользователя и создание объекта класса для работы с рейтингом"""
