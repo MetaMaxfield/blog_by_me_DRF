@@ -3,7 +3,7 @@ from rest_framework import status
 from rest_framework.exceptions import ValidationError
 
 from blog.models import Mark, Rating
-from blog_by_me_DRF.settings import KEY_RATING_DETAIL
+from blog_by_me_DRF.settings import KEY_MARK_DETAIL, KEY_RATING_DETAIL
 from services.queryset import qs_definition
 from users.models import User
 
@@ -67,15 +67,8 @@ class ServiceUserRating:
         return self._existing_rating
 
     def _get_mark(self) -> Mark:
-        """
-        Возвращает объект оценки (Mark) по указанному ID.
-        Если оценка не найдена, вызывает исключение ValidationError
-        """
-        try:
-            mark = Mark.objects.get(id=self.mark_id)
-            return mark
-        except Mark.DoesNotExist:
-            raise ValidationError({'detail': _('Оценка с указанным id не найдена.')})
+        """Возвращает объект оценки (Mark) по указанному ID"""
+        return qs_definition(KEY_MARK_DETAIL, pk=self.mark_id)
 
     def _get_author(self) -> User:
         """

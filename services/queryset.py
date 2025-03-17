@@ -4,10 +4,12 @@ from django.db.models import Count, Prefetch, Q, QuerySet, Sum
 from django.db.models.functions import Coalesce
 from django.http import Http404
 from django.utils import timezone
+from django.utils.translation import gettext as _
+from rest_framework.exceptions import ValidationError
 from rest_framework.generics import get_object_or_404
 from taggit.models import Tag, TaggedItem
 
-from blog.models import Category, Comment, Post, Rating, Video
+from blog.models import Category, Comment, Mark, Post, Rating, Video
 from blog_by_me_DRF import settings
 from company.models import About
 from users.models import User
@@ -57,6 +59,17 @@ def _qs_rating_detail(ip: str, post_slug: str, http_method: str) -> Rating | Non
             raise Http404
         rating = None
     return rating
+
+
+def _qs_mark_detail(pk: int) -> Mark:
+    """
+    Возвращает объект оценки (Mark) по указанному ID.
+    Если оценка не найдена, вызывает исключение ValidationError
+    """
+    try:
+        return Mark.objects.get(id=pk)
+    except Mark.DoesNotExist:
+        raise ValidationError({'detail': _('Оценка с указанным id не найдена.')})
 
 
 def _qs_categories_list() -> QuerySet:
@@ -175,6 +188,7 @@ def qs_definition(qs_key: str, **kwargs: str | int) -> Union[QuerySet, settings.
         settings.KEY_POSTS_LIST: _qs_post_list,
         settings.KEY_POST_DETAIL: _qs_post_detail,
         settings.KEY_RATING_DETAIL: _qs_rating_detail,
+        settings.KEY_MARK_DETAIL: _qs_mark_detail,
         settings.KEY_CATEGORIES_LIST: _qs_categories_list,
         settings.KEY_VIDEOS_LIST: _qs_videos_list,
         settings.KEY_ABOUT: _qs_about,
