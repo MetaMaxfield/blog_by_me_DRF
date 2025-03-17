@@ -1,9 +1,8 @@
 from django.utils.translation import gettext as _
 from rest_framework import status
-from rest_framework.exceptions import ValidationError
 
 from blog.models import Mark, Rating
-from blog_by_me_DRF.settings import KEY_MARK_DETAIL, KEY_RATING_DETAIL
+from blog_by_me_DRF.settings import KEY_AUTHOR_DETAIL_STRICT, KEY_MARK_DETAIL, KEY_RATING_DETAIL
 from services.queryset import qs_definition
 from users.models import User
 
@@ -71,15 +70,8 @@ class ServiceUserRating:
         return qs_definition(KEY_MARK_DETAIL, pk=self.mark_id)
 
     def _get_author(self) -> User:
-        """
-        Возвращает объект автора (User) по указанному ID.
-        Если автор не найден, вызывает исключение ValidationError
-        """
-        try:
-            author = User.objects.get(post_author__url=self.post_slug)
-            return author
-        except User.DoesNotExist:
-            raise ValidationError({'detail': _('Пользователь, связанный с указанным id поста, не найден.')})
+        """Возвращает объект автора (User) по указанному post_slug"""
+        return qs_definition(KEY_AUTHOR_DETAIL_STRICT, post_slug=self.post_slug)
 
     def _get_message_and_status_code(self) -> tuple[str, int]:
         """

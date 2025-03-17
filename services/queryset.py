@@ -133,6 +133,18 @@ def _qs_author_detail(pk: int) -> User:
     )
 
 
+def _qs_author_detail_strict(post_slug: str) -> User:
+    """
+    Возвращает объект автора (User) по указанному post_slug.
+    Используется для получения упрощённого набора данных автора при изменении его рейтинга (user_rating).
+    Если автор не найден, вызывает исключение ValidationError.
+    """
+    try:
+        return User.objects.get(post_author__url=post_slug)
+    except User.DoesNotExist:
+        raise ValidationError({'detail': _('Пользователь, связанный с указанным slug поста, не найден.')})
+
+
 def _qs_top_posts() -> QuerySet:
     """QS с тремя самыми популярными постами"""
     return (
@@ -194,6 +206,7 @@ def qs_definition(qs_key: str, **kwargs: str | int) -> Union[QuerySet, settings.
         settings.KEY_ABOUT: _qs_about,
         settings.KEY_AUTHORS_LIST: _qs_author_list,
         settings.KEY_AUTHOR_DETAIL: _qs_author_detail,
+        settings.KEY_AUTHOR_DETAIL_STRICT: _qs_author_detail_strict,
         settings.KEY_TOP_POSTS: _qs_top_posts,
         settings.KEY_LAST_POSTS: _qs_last_posts,
         settings.KEY_ALL_TAGS: _qs_top_tags,
