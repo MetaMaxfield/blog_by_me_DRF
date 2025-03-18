@@ -2,7 +2,6 @@ from typing import Any, NoReturn, Union
 
 from django.db.models import Count, Prefetch, Q, QuerySet, Sum
 from django.db.models.functions import Coalesce
-from django.http import Http404
 from django.utils import timezone
 from django.utils.translation import gettext as _
 from rest_framework.exceptions import ValidationError
@@ -45,18 +44,15 @@ def _qs_post_detail(slug: str) -> Post:
     )
 
 
-def _qs_rating_detail(ip: str, post_slug: str, http_method: str) -> Rating | None:
-    """
-    Возвращает текущий рейтинг пользователя к посту, если он существует в базе данных.
-    В случае его отсутствия, в зависимости от HTTP-метода запроса:
-        - Для POST-запросов (create/update) возвращает None, позволяя создать новый рейтинг
-        - Для GET-запросов (retrieve) предполагает вызов исключения (Http404), если рейтинг не найден
-    """
+def _qs_rating_detail(ip: str, post_slug: str) -> Rating | None:
+    """Возвращает рейтинг пользователя к посту"""
+
+    # Если пост с указанным slug не существует или недоступен для просмотра, вызывается ошибка 404
+    post = get_object_or_404(Post.objects.filter(draft=False, publish__lte=timezone.now()).only('id'), url=post_slug)
+
     try:
-        rating = Rating.objects.get(ip=ip, post__url=post_slug, post__draft=False, post__publish__lte=timezone.now())
+        rating = Rating.objects.get(ip=ip, post=post)
     except Rating.DoesNotExist:
-        if http_method == 'GET':
-            raise Http404
         rating = None
     return rating
 

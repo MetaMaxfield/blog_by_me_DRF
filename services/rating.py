@@ -20,7 +20,7 @@ class ServiceUserRating:
     RATING_UPDATE_MESSAGE = _('Рейтинг успешно обновлен.')
     RATING_CREATE_MESSAGE = _('Рейтинг успешно создан.')
 
-    def __init__(self, ip: str, post_slug: str, mark_id: int, http_method: str) -> None:
+    def __init__(self, ip: str, post_slug: str, mark_id: int) -> None:
         """
         Инициализация
 
@@ -28,9 +28,6 @@ class ServiceUserRating:
         self.ip: Сохраняет IP-адрес оценивающего пользователя.
         self.post_slug: Сохраняет идентификатор поста.
         self.mark_id: Сохраняет идентификатор оценки.
-        self.http_method: Определяет логику отсутствия рейтинга в сервисном слое:
-            - Http404 для GET (retrieve)
-            - None для POST (create/update)
         self._existing_rating: Внутренний атрибут, который может иметь три значения:
             - False: Запрос к базе данных на получение рейтинга ещё не выполнялся.
             - Rating: Экземпляр модели Rating, если рейтинг найден в базе данных.
@@ -39,7 +36,6 @@ class ServiceUserRating:
         self.ip = ip
         self.post_slug = post_slug
         self.mark_id = mark_id
-        self.http_method = http_method
 
         self._existing_rating = False
 
@@ -62,9 +58,7 @@ class ServiceUserRating:
             - Если запрос уже выполнялся, возвращается ранее полученное значение _existing_rating.
         """
         if self._existing_rating is False:
-            self._existing_rating = qs_definition(
-                KEY_RATING_DETAIL, ip=self.ip, post_slug=self.post_slug, http_method=self.http_method
-            )
+            self._existing_rating = qs_definition(KEY_RATING_DETAIL, ip=self.ip, post_slug=self.post_slug)
         return self._existing_rating
 
     def update_author_rating(self) -> None:
