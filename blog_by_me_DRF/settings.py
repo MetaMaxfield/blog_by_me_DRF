@@ -240,15 +240,19 @@ INTERNAL_IPS = [
 # и определения необходимого запроса к БД (функция qs_definition)
 KEY_POSTS_LIST = os.getenv('KEY_POSTS_LIST')
 KEY_POST_DETAIL = os.getenv('KEY_POST_DETAIL')
+KEY_RATING_DETAIL = os.getenv('KEY_RATING_DETAIL')
+KEY_MARK_DETAIL = os.getenv('KEY_MARK_DETAIL')
 KEY_CATEGORIES_LIST = os.getenv('KEY_CATEGORIES_LIST')
 KEY_VIDEOS_LIST = os.getenv('KEY_VIDEOS_LIST')
 KEY_ABOUT = os.getenv('KEY_ABOUT')
 KEY_AUTHORS_LIST = os.getenv('KEY_AUTHORS_LIST')
 KEY_AUTHOR_DETAIL = os.getenv('KEY_AUTHOR_DETAIL')
+KEY_AUTHOR_DETAIL_STRICT = os.getenv('KEY_AUTHOR_DETAIL_STRICT')
 KEY_TOP_POSTS = os.getenv('KEY_TOP_POSTS')
 KEY_LAST_POSTS = os.getenv('KEY_LAST_POSTS')
 KEY_ALL_TAGS = os.getenv('KEY_ALL_TAGS')
 KEY_POSTS_CALENDAR = os.getenv('KEY_POSTS_CALENDAR')
+KEY_COMMENTS_LIST = os.getenv('KEY_COMMENTS_LIST')
 
 
 # Ключ-префикс для других ключей
