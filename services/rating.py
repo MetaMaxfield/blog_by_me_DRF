@@ -1,21 +1,24 @@
 from django.utils.translation import gettext as _
 from rest_framework import status
-from rest_framework.exceptions import ValidationError
 
-from blog.models import Mark, Rating
-from users.models import User
+from blog.models import Rating
+from blog_by_me_DRF.settings import KEY_AUTHOR_DETAIL_STRICT, KEY_MARK_DETAIL, KEY_RATING_DETAIL
+from services.queryset import qs_definition
 
 
 class ServiceUserRating:
     """
     Класс для управления рейтингом автора user_rating на основе оценки (Mark) для поста.
 
-    Взаимодействие с объектом класса осуществляется через
-    existing_rating или update_author_rating_with_return_message_and_status_code()
+    Взаимодействие с объектом класса осуществляется через:
+    - existing_rating
+    - update_author_rating()
+    - get_message()
+    - get_status_code()
     """
 
     RATING_UPDATE_MESSAGE = _('Рейтинг успешно обновлен.')
-    RATING_CREATE_MESSAGE = _('Рейтинг успешно добавлен.')
+    RATING_CREATE_MESSAGE = _('Рейтинг успешно создан.')
 
     def __init__(self, ip: str, post_slug: str, mark_id: int) -> None:
         """
@@ -41,14 +44,13 @@ class ServiceUserRating:
         """
         Применяется как атрибут (используйте .existing_rating).
 
-        Возвращает текущий рейтинг пользователя к посту,
-        если он существует в базе данных. В противном случае возвращает None.
+        Возвращает текущий рейтинг пользователя к посту.
 
         Особенности использования:
             1. Может быть вызван отдельно в представлении для проверки наличия существующего
                рейтинга или подтверждения его отсутствия (определение первичного оценивания),
                с последующей передачей в сериализатор.
-            2. Вызывается автоматически внутри метода _update_rating()
+            2. Вызывается автоматически внутри метода update_author_rating()
 
         Логика работы:
             - Если запрос ещё не выполнялся (_existing_rating == False),
@@ -56,53 +58,10 @@ class ServiceUserRating:
             - Если запрос уже выполнялся, возвращается ранее полученное значение _existing_rating.
         """
         if self._existing_rating is False:
-            try:
-                self._existing_rating = Rating.objects.get(ip=self.ip, post__url=self.post_slug)
-
-            except Rating.DoesNotExist:
-                self._existing_rating = None
-
+            self._existing_rating = qs_definition(KEY_RATING_DETAIL, ip=self.ip, post_slug=self.post_slug)
         return self._existing_rating
 
-    def _get_mark(self) -> Mark:
-        """
-        Возвращает объект оценки (Mark) по указанному ID.
-        Если оценка не найдена, вызывает исключение ValidationError
-        """
-        try:
-            mark = Mark.objects.get(id=self.mark_id)
-            return mark
-        except Mark.DoesNotExist:
-            raise ValidationError({'detail': _('Оценка с указанным id не найдена.')})
-
-    def _get_author(self) -> User:
-        """
-        Возвращает объект автора (User) по указанному ID.
-        Если автор не найден, вызывает исключение ValidationError
-        """
-        try:
-            author = User.objects.get(post_author__url=self.post_slug)
-            return author
-        except User.DoesNotExist:
-            raise ValidationError({'detail': _('Пользователь, связанный с указанным id поста, не найден.')})
-
-    def _get_message_and_status_code(self) -> tuple[str, int]:
-        """
-        Возвращает сообщение и статусный код в зависимости от действия с рейтингом.
-
-        Логика:
-            - Если _existing_rating содержит объект Rating, возвращается сообщение и код,
-            означающие обновление оценки к посту.
-            - Если _existing_rating равно None, возвращается сообщение и код, означающие добавление оценки к посту.
-
-        _existing_rating обновляется в методе existing_rating после выполнения запроса к базе данных, и может
-        служить индикатором для определения необходимого сообщения и HTTP-статуса.
-        """
-        if self._existing_rating:
-            return ServiceUserRating.RATING_UPDATE_MESSAGE, status.HTTP_200_OK
-        return ServiceUserRating.RATING_CREATE_MESSAGE, status.HTTP_201_CREATED
-
-    def _update_rating(self) -> None:
+    def update_author_rating(self) -> None:
         """
         Обновляет рейтинг автора на основе выбранной оценки (Mark) к его посту.
 
@@ -112,8 +71,8 @@ class ServiceUserRating:
             - Добавляется новое значение рейтинга, соответствующее выбранной оценке (Mark), и сохраняется в базе данных.
         """
 
-        mark = self._get_mark()
-        author = self._get_author()
+        mark = qs_definition(KEY_MARK_DETAIL, pk=self.mark_id)
+        author = qs_definition(KEY_AUTHOR_DETAIL_STRICT, post_slug=self.post_slug)
 
         if self.existing_rating:
             author.user_rating -= self.existing_rating.mark.value
@@ -121,11 +80,34 @@ class ServiceUserRating:
         author.user_rating += mark.value
         author.save()
 
-    def update_author_rating_with_return_message_and_status_code(self) -> tuple[str, int]:
+    def get_message(self) -> tuple[str, int]:
         """
-        Обновляет рейтинг пользователя (self._update_rating())
-        и возвращает соответствующее сообщение и статусный код (self._get_message_and_status_code())
+        Возвращает сообщение в зависимости от действия с рейтингом.
+
+        Логика:
+            - Если _existing_rating содержит объект Rating, возвращается сообщение,
+            означающее обновление оценки к посту.
+            - Если _existing_rating равно None, возвращается сообщение, означающее добавление оценки к посту.
+
+        _existing_rating обновляется в методе existing_rating после выполнения запроса к базе данных, и может
+        служить индикатором для определения необходимого сообщения.
         """
-        self._update_rating()
-        message, status_code = self._get_message_and_status_code()
-        return message, status_code
+        return (
+            ServiceUserRating.RATING_UPDATE_MESSAGE
+            if self._existing_rating
+            else ServiceUserRating.RATING_CREATE_MESSAGE
+        )
+
+    def get_status_code(self) -> tuple[str, int]:
+        """
+        Возвращает статусный код в зависимости от действия с рейтингом.
+
+        Логика:
+            - Если _existing_rating содержит объект Rating, возвращается код,
+            означающий обновление оценки к посту.
+            - Если _existing_rating равно None, возвращается код, означающий добавление оценки к посту.
+
+        _existing_rating обновляется в методе existing_rating после выполнения запроса к базе данных, и может
+        служить индикатором для определения необходимого HTTP-статуса.
+        """
+        return status.HTTP_200_OK if self._existing_rating else status.HTTP_201_CREATED

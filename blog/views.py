@@ -1,6 +1,7 @@
 from django.utils.translation import gettext as _
 from rest_framework import mixins, status, viewsets  # , generics
 from rest_framework.decorators import action
+from rest_framework.renderers import JSONRenderer
 from rest_framework.request import Request
 from rest_framework.response import Response
 from rest_framework.views import APIView
@@ -11,6 +12,7 @@ from services import caching, queryset, search
 from services.blog import paginators, validators
 from services.client_ip import get_client_ip
 from services.rating import ServiceUserRating
+from services.renderer import NoHTMLFormBrowsableAPIRenderer
 
 # class PostsView(APIView):
 #     """Вывод постов блога"""
@@ -330,7 +332,9 @@ class VideoViewSet(mixins.ListModelMixin, viewsets.GenericViewSet):
 #         """Получение ip пользователя и создание объекта класса для работы с рейтингом"""
 #         self.ip = get_client_ip(request)
 #         self.service_rating = ServiceUserRating(
-#             ip=self.ip, post_slug=slug, mark_id=request.data.get('mark')
+#             ip=self.ip,
+#             post_slug=self.kwargs['slug'],
+#             mark_id=request.data.get('mark'),
 #         )
 #
 #     def get(self, request: Request, slug: str) -> Response:
@@ -350,11 +354,13 @@ class VideoViewSet(mixins.ListModelMixin, viewsets.GenericViewSet):
 #
 #         if rating_serializer.is_valid():
 #             # Обновляем рейтинг пользователя на основе выбранной оценки
-#             # и получаем соответствующее сообщение и статусный код для совершённого действия
-#             message, status_code = self.service_rating.update_author_rating_with_return_message_and_status_code()
+#             self.service_rating.update_author_rating()
 #
 #             rating_serializer.save(ip=self.ip)
-#             return Response({'message': _(message)}, status=status_code)
+#             return Response(
+#                 {'message': _(self.service_rating.get_message())},
+#                 status=self.service_rating.get_status_code()
+#             )
 #
 #         return Response(rating_serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
@@ -367,11 +373,15 @@ class VideoViewSet(mixins.ListModelMixin, viewsets.GenericViewSet):
 #     Если объект не найден, он будет автоматически создан при выполнении POST-запроса.
 #     """
 #
+#     renderer_classes = [JSONRenderer, NoHTMLFormBrowsableAPIRenderer]
+#
 #     def setup_rating_service(self, request, *args, **kwargs):
 #         """Получение ip пользователя и создание объекта класса для работы с рейтингом"""
 #         self.kwargs['ip'] = get_client_ip(request)
 #         self.service_rating = ServiceUserRating(
-#             ip=self.kwargs['ip'], post_slug=kwargs['slug'], mark_id=request.data.get('mark')
+#             ip=self.kwargs['ip'],
+#             post_slug=kwargs['slug'],
+#             mark_id=request.data.get('mark'),
 #         )
 #
 #     def retrieve(self, request, *args, **kwargs):
@@ -381,7 +391,10 @@ class VideoViewSet(mixins.ListModelMixin, viewsets.GenericViewSet):
 #     def post(self, request, *args, **kwargs):
 #         self.setup_rating_service(request, *args, **kwargs)
 #         self.update(request, *args, **kwargs)
-#         return Response({'message': _(self.message)}, status=self.status_code)
+#         return Response(
+#             {'message': _(self.service_rating.get_message())},
+#             status=self.service_rating.get_status_code()
+#         )
 #
 #     def get_object(self):
 #         # Получаем текущий рейтинг пользователя для указанного IP-адреса и поста,
@@ -401,9 +414,7 @@ class VideoViewSet(mixins.ListModelMixin, viewsets.GenericViewSet):
 #
 #     def perform_update(self, serializer):
 #         # Обновляем рейтинг автора на основе выбранной оценки
-#         # и получаем соответствующее сообщение и статусный код для совершённого действия
-#         self.message, self.status_code = \
-#             self.service_rating.update_author_rating_with_return_message_and_status_code()
+#         self.service_rating.update_author_rating()
 #
 #         serializer.save(ip=self.kwargs['ip'])
 
@@ -420,6 +431,8 @@ class RatingViewSet(mixins.RetrieveModelMixin, mixins.UpdateModelMixin, viewsets
     Если объект не найден, он будет автоматически создан при выполнении POST-запроса.
     """
 
+    renderer_classes = [JSONRenderer, NoHTMLFormBrowsableAPIRenderer]
+
     def setup_rating_service(self, request, *args, **kwargs):
         """Получение ip пользователя и создание объекта класса для работы с рейтингом"""
         self.kwargs['ip'] = get_client_ip(request)
@@ -434,7 +447,7 @@ class RatingViewSet(mixins.RetrieveModelMixin, mixins.UpdateModelMixin, viewsets
     def create_or_update(self, request, *args, **kwargs):
         self.setup_rating_service(request, *args, **kwargs)
         super().update(request, *args, **kwargs)
-        return Response({'message': _(self.message)}, status=self.status_code)
+        return Response({'message': _(self.service_rating.get_message())}, status=self.service_rating.get_status_code())
 
     def get_object(self):
         # Получаем текущий рейтинг пользователя для указанного IP-адреса и поста,
@@ -454,8 +467,7 @@ class RatingViewSet(mixins.RetrieveModelMixin, mixins.UpdateModelMixin, viewsets
 
     def perform_update(self, serializer):
         # Обновляем рейтинг пользователя на основе выбранной оценки
-        # и получаем соответствующее сообщение и статусный код для совершённого действия
-        self.message, self.status_code = self.service_rating.update_author_rating_with_return_message_and_status_code()
+        self.service_rating.update_author_rating()
 
         serializer.save(ip=self.kwargs['ip'])
 
