@@ -43,3 +43,12 @@ class MarkFactory(DjangoModelFactory):
 
     nomination = TITLE_LIKE_MARK
     value = 1
+
+
+class RatingFactory(DjangoModelFactory):
+    class Meta:
+        model = Rating
+
+    ip = '127.0.0.1'
+    mark = SubFactory(MarkFactory)
+    post = SubFactory(PostFactory)
