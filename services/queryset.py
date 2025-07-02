@@ -14,6 +14,10 @@ from company.models import About
 from users.models import User
 
 
+def _qs_simple_post_list():
+    return Post.objects.filter(draft=False, publish__lte=timezone.now()).only('id', 'url')
+
+
 def _qs_post_list() -> QuerySet:
     """Общий QS с записями блога"""
     return (
@@ -193,6 +197,7 @@ def not_definite_qs(**kwargs: Any) -> NoReturn:
 def qs_definition(qs_key: str, **kwargs: str | int) -> Union[QuerySet, settings.ObjectModel, NoReturn]:
     """Определение необходимого запроса в БД по ключу"""
     qs_keys = {
+        settings.KEY_SIMPLE_POSTS_LIST: _qs_simple_post_list,
         settings.KEY_POSTS_LIST: _qs_post_list,
         settings.KEY_POST_DETAIL: _qs_post_detail,
         settings.KEY_RATING_DETAIL: _qs_rating_detail,
