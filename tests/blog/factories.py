@@ -2,7 +2,8 @@ from django.core.files.uploadedfile import SimpleUploadedFile
 from factory import Sequence, SubFactory
 from factory.django import DjangoModelFactory
 
-from blog.models import Category, Post, Video
+from blog.models import Category, Mark, Post, Rating, Video
+from blog_by_me_DRF.settings import TITLE_LIKE_MARK
 from tests.users.factories import UserFactory
 
 
@@ -34,3 +35,11 @@ class PostFactory(DjangoModelFactory):
     category = SubFactory(CategoryFactory)
     body = 'Содержание событий в отпуске'
     image = SimpleUploadedFile("fishing.jpeg", b"fake image content", content_type="image/jpeg")
+
+
+class MarkFactory(DjangoModelFactory):
+    class Meta:
+        model = Mark
+
+    nomination = TITLE_LIKE_MARK
+    value = 1
