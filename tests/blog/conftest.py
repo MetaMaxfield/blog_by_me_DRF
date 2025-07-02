@@ -46,3 +46,9 @@ def filtered_posts_and_timezone_now():
         filtered_posts = queryset._qs_simple_post_list()
 
     return {'filtered_posts': filtered_posts, 'time_now': time_now}
+
+
+@pytest.fixture
+def marks():
+    call_command('create_mark_models')
+    return {'Лайк': Mark.objects.get(nomination='Лайк'), 'Дизлайк': Mark.objects.get(nomination='Дизлайк')}
