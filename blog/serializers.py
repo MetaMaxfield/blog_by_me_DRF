@@ -4,7 +4,7 @@ from rest_framework import serializers
 from taggit.models import Tag
 
 from blog.models import Category, Comment, Post, Rating, Video
-from blog_by_me_DRF.settings import KEY_POSTS_LIST
+from blog_by_me_DRF.settings import KEY_SIMPLE_POSTS_LIST
 from services.queryset import qs_definition
 from users.serializers import AuthorDetailSerializer
 
@@ -166,12 +166,18 @@ class RatingDetailSerializer(serializers.ModelSerializer):
 class AddRatingSerializer(serializers.ModelSerializer):
     """Создание/обновление рейтинга к посту"""
 
-    # queryset обеспечивает валидацию: запрещает добавлять оценку к черновикам и неопубликованным постам
-    post = serializers.SlugRelatedField(slug_field='url', queryset=qs_definition(KEY_POSTS_LIST))
+    # queryset переопределяется в __init__(), чтобы избежать раннего запроса
+    # и всегда иметь актуальные данные (применяется фильтрация по времени)
+    post = serializers.SlugRelatedField(slug_field='url', queryset=Post.objects.none())
 
     class Meta:
         model = Rating
         fields = ('mark', 'post')
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        # устанавливаем актуальную выборку постов для поиска значения поля post
+        self.fields['post'].queryset = qs_definition(KEY_SIMPLE_POSTS_LIST)
 
     def to_internal_value(self, data):
         """Автоматически добавляет slug в поле post из контекста"""

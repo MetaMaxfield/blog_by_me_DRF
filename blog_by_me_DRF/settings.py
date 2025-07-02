@@ -243,6 +243,7 @@ INTERNAL_IPS = [
 
 # Ключи для кэширования данных (функция get_cached_objects_or_queryset)
 # и определения необходимого запроса к БД (функция qs_definition)
+KEY_SIMPLE_POSTS_LIST = os.getenv('KEY_SIMPLE_POSTS_LIST')
 KEY_POSTS_LIST = os.getenv('KEY_POSTS_LIST')
 KEY_POST_DETAIL = os.getenv('KEY_POST_DETAIL')
 KEY_RATING_DETAIL = os.getenv('KEY_RATING_DETAIL')
