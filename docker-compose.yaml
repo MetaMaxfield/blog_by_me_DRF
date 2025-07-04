@@ -1,0 +1,32 @@
+services:
+  db:
+    image: postgres:17.5
+    environment:
+      POSTGRES_USER: ${KEY_DATABASES_USER}
+      POSTGRES_PASSWORD: ${KEY_DATABASES_PASSWORD}
+      POSTGRES_DB: ${KEY_DATABASES_NAME}
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}']
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    volumes:
+      - db-data:/var/lib/postgresql/data
+      - ./db_init:/docker-entrypoint-initdb.d
+    ports:
+      - "5432:5432"
+    restart: on-failure
+    stop_grace_period: 15s
+
+  cache:
+    image: memcached:1.6.38
+    command:
+      - --conn-limit=1024
+      - --memory-limit=64
+      - --threads=1
+    ports:
+      - "11211:11211"
+    restart: on-failure
+
+volumes:
+  db-data:

@@ -89,6 +89,7 @@ INSTALLED_APPS = [
     'company',
     'common',
     'users',
+    'drf_spectacular',
 ]
 
 
@@ -170,6 +171,13 @@ AUTH_PASSWORD_VALIDATORS = [
 ]
 
 
+# Основные настройки DRF
+REST_FRAMEWORK = {
+    # Класс схемы для генерации OpenAPI-документации
+    'DEFAULT_SCHEMA_CLASS': 'drf_spectacular.openapi.AutoSchema',
+}
+
+
 # Internationalization
 # https://docs.djangoproject.com/en/4.2/topics/i18n/
 LANGUAGE_CODE = 'ru-ru'
@@ -243,17 +251,22 @@ INTERNAL_IPS = [
 
 # Ключи для кэширования данных (функция get_cached_objects_or_queryset)
 # и определения необходимого запроса к БД (функция qs_definition)
+KEY_SIMPLE_POSTS_LIST = os.getenv('KEY_SIMPLE_POSTS_LIST')
 KEY_POSTS_LIST = os.getenv('KEY_POSTS_LIST')
 KEY_POST_DETAIL = os.getenv('KEY_POST_DETAIL')
+KEY_RATING_DETAIL = os.getenv('KEY_RATING_DETAIL')
+KEY_MARK_DETAIL = os.getenv('KEY_MARK_DETAIL')
 KEY_CATEGORIES_LIST = os.getenv('KEY_CATEGORIES_LIST')
 KEY_VIDEOS_LIST = os.getenv('KEY_VIDEOS_LIST')
 KEY_ABOUT = os.getenv('KEY_ABOUT')
 KEY_AUTHORS_LIST = os.getenv('KEY_AUTHORS_LIST')
 KEY_AUTHOR_DETAIL = os.getenv('KEY_AUTHOR_DETAIL')
+KEY_AUTHOR_DETAIL_STRICT = os.getenv('KEY_AUTHOR_DETAIL_STRICT')
 KEY_TOP_POSTS = os.getenv('KEY_TOP_POSTS')
 KEY_LAST_POSTS = os.getenv('KEY_LAST_POSTS')
 KEY_ALL_TAGS = os.getenv('KEY_ALL_TAGS')
 KEY_POSTS_CALENDAR = os.getenv('KEY_POSTS_CALENDAR')
+KEY_COMMENTS_LIST = os.getenv('KEY_COMMENTS_LIST')
 
 
 # Ключ-префикс для других ключей
@@ -422,3 +435,12 @@ PHONENUMBER_DEFAULT_REGION = 'RU'
 
 # Общая аннотация для объектов, наследуемых от базовой модели Django
 ObjectModel = TypeVar('ObjectModel', bound=Model)
+
+
+# Настройки генерации OpenAPI-схемы для drf-spectacular
+SPECTACULAR_SETTINGS = {
+    'TITLE': 'blog_by_me_DRF',
+    'DESCRIPTION': 'My blog.',
+    'VERSION': '0.0.1',
+    'SERVE_INCLUDE_SCHEMA': False,
+}

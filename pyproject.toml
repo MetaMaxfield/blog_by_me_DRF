@@ -6,5 +6,6 @@ extend-exclude = '''
 /(
     migrations|
     venv
+    testvenv
 )/
 '''

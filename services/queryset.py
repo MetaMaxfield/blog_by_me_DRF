@@ -3,13 +3,19 @@ from typing import Any, NoReturn, Union
 from django.db.models import Count, Prefetch, Q, QuerySet, Sum
 from django.db.models.functions import Coalesce
 from django.utils import timezone
+from django.utils.translation import gettext as _
+from rest_framework.exceptions import ValidationError
 from rest_framework.generics import get_object_or_404
 from taggit.models import Tag, TaggedItem
 
-from blog.models import Category, Comment, Post, Video
+from blog.models import Category, Comment, Mark, Post, Rating, Video
 from blog_by_me_DRF import settings
 from company.models import About
 from users.models import User
+
+
+def _qs_simple_post_list():
+    return Post.objects.filter(draft=False, publish__lte=timezone.now()).only('id', 'url')
 
 
 def _qs_post_list() -> QuerySet:
@@ -27,21 +33,12 @@ def _qs_post_list() -> QuerySet:
     )
 
 
-def _qs_post_detail(slug: str) -> QuerySet:
+def _qs_post_detail(slug: str) -> Post:
     """Отдельная запись в блоге"""
     return get_object_or_404(
         Post.objects.filter(draft=False, publish__lte=timezone.now())
         .prefetch_related(
             Prefetch('author', User.objects.only('id', 'username')),
-            Prefetch(
-                'comments',
-                Comment.objects.filter(parent=None)
-                .prefetch_related(
-                    Prefetch('children', Comment.objects.defer('email', 'active'), to_attr='prefetched_comments2')
-                )
-                .defer('email', 'active'),
-                to_attr='prefetched_comments1',
-            ),
         )
         .defer('draft')
         .annotate(
@@ -49,6 +46,30 @@ def _qs_post_detail(slug: str) -> QuerySet:
         ),
         url=slug,
     )
+
+
+def _qs_rating_detail(ip: str, post_slug: str) -> Rating | None:
+    """Возвращает рейтинг пользователя к посту"""
+
+    # Если пост с указанным slug не существует или недоступен для просмотра, вызывается ошибка 404
+    post = get_object_or_404(Post.objects.filter(draft=False, publish__lte=timezone.now()).only('id'), url=post_slug)
+
+    try:
+        rating = Rating.objects.get(ip=ip, post=post)
+    except Rating.DoesNotExist:
+        rating = None
+    return rating
+
+
+def _qs_mark_detail(pk: int) -> Mark:
+    """
+    Возвращает объект оценки (Mark) по указанному ID.
+    Если оценка не найдена, вызывает исключение ValidationError
+    """
+    try:
+        return Mark.objects.get(id=pk)
+    except Mark.DoesNotExist:
+        raise ValidationError({'detail': _('Оценка с указанным id не найдена.')})
 
 
 def _qs_categories_list() -> QuerySet:
@@ -112,6 +133,18 @@ def _qs_author_detail(pk: int) -> User:
     )
 
 
+def _qs_author_detail_strict(post_slug: str) -> User:
+    """
+    Возвращает объект автора (User) по указанному post_slug.
+    Используется для получения упрощённого набора данных автора при изменении его рейтинга (user_rating).
+    Если автор не найден, вызывает исключение ValidationError.
+    """
+    try:
+        return User.objects.get(post_author__url=post_slug)
+    except User.DoesNotExist:
+        raise ValidationError({'detail': _('Пользователь, связанный с указанным slug поста, не найден.')})
+
+
 def _qs_top_posts() -> QuerySet:
     """QS с тремя самыми популярными постами"""
     return (
@@ -145,6 +178,17 @@ def _qs_days_posts_in_current_month(year: int, month: int) -> QuerySet:
     ).dates('publish', 'day')
 
 
+def _qs_comments_list(post_id: str) -> QuerySet:
+    """QS с комментариями заданного поста"""
+    return (
+        Comment.objects.filter(post_id=post_id, parent=None)
+        .prefetch_related(
+            Prefetch('children', Comment.objects.defer('email', 'active'), to_attr='prefetched_comments2')
+        )
+        .defer('email', 'active')
+    )
+
+
 def not_definite_qs(**kwargs: Any) -> NoReturn:
     """Вызов исключения если ключ для получения queryset не найден"""
     raise Exception('Ключ для получения queryset не найден.')
@@ -153,17 +197,22 @@ def not_definite_qs(**kwargs: Any) -> NoReturn:
 def qs_definition(qs_key: str, **kwargs: str | int) -> Union[QuerySet, settings.ObjectModel, NoReturn]:
     """Определение необходимого запроса в БД по ключу"""
     qs_keys = {
+        settings.KEY_SIMPLE_POSTS_LIST: _qs_simple_post_list,
         settings.KEY_POSTS_LIST: _qs_post_list,
         settings.KEY_POST_DETAIL: _qs_post_detail,
+        settings.KEY_RATING_DETAIL: _qs_rating_detail,
+        settings.KEY_MARK_DETAIL: _qs_mark_detail,
         settings.KEY_CATEGORIES_LIST: _qs_categories_list,
         settings.KEY_VIDEOS_LIST: _qs_videos_list,
         settings.KEY_ABOUT: _qs_about,
         settings.KEY_AUTHORS_LIST: _qs_author_list,
         settings.KEY_AUTHOR_DETAIL: _qs_author_detail,
+        settings.KEY_AUTHOR_DETAIL_STRICT: _qs_author_detail_strict,
         settings.KEY_TOP_POSTS: _qs_top_posts,
         settings.KEY_LAST_POSTS: _qs_last_posts,
         settings.KEY_ALL_TAGS: _qs_top_tags,
         settings.KEY_POSTS_CALENDAR: _qs_days_posts_in_current_month,
+        settings.KEY_COMMENTS_LIST: _qs_comments_list,
     }
     definite_qs = qs_keys.get(qs_key, not_definite_qs)
     return definite_qs(**kwargs) if kwargs else definite_qs()

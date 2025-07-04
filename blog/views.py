@@ -1,16 +1,18 @@
 from django.utils.translation import gettext as _
 from rest_framework import mixins, status, viewsets  # , generics
 from rest_framework.decorators import action
+from rest_framework.renderers import JSONRenderer
 from rest_framework.request import Request
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from blog import serializers
 from blog_by_me_DRF import settings
-from services import caching, search
+from services import caching, queryset, search
 from services.blog import paginators, validators
 from services.client_ip import get_client_ip
 from services.rating import ServiceUserRating
+from services.renderer import NoHTMLFormBrowsableAPIRenderer
 
 # class PostsView(APIView):
 #     """Вывод постов блога"""
@@ -318,110 +320,156 @@ class VideoViewSet(mixins.ListModelMixin, viewsets.GenericViewSet):
         return caching.get_cached_objects_or_queryset(settings.KEY_VIDEOS_LIST)
 
 
-# class AddRatingView(APIView):
+# class GetAddRatingView(APIView):
 #     """
-#     Добавление рейтинга к посту.
+#     Вывод и создание/обновление рейтинга пользователя к посту.
 #
-#     ВНИМАНИЕ: Данное представление реализует PUT as create.
-#     Если объект не найден, он будет автоматически создан при выполнении PUT-запроса.
+#     ВНИМАНИЕ: Представление реализует UPSERT подход.
+#     Если объект не найден, он будет автоматически создан при выполнении POST-запроса.
 #     """
 #
-#     def put(self, request: Request) -> Response:
-#         # Получаем IP пользователя
-#         ip = get_client_ip(request)
+#     def setup_rating_service(self, request: Request, slug: str):
+#         """Получение ip пользователя и создание объекта класса для работы с рейтингом"""
+#         self.ip = get_client_ip(request)
+#         self.service_rating = ServiceUserRating(
+#             ip=self.ip,
+#             post_slug=self.kwargs['slug'],
+#             mark_id=request.data.get('mark'),
+#         )
 #
-#         # Создаём объект класса для работы с рейтингом
-#         service_rating = ServiceUserRating(ip, post_id=request.data['post'], mark_id=request.data['mark'])
+#     def get(self, request: Request, slug: str) -> Response:
+#         self.setup_rating_service(request, slug)
+#         rating = self.service_rating.existing_rating
+#         rating_serializer = serializers.RatingDetailSerializer(rating)
+#         return Response(rating_serializer.data)
+#
+#     def post(self, request: Request, slug: str) -> Response:
+#         self.setup_rating_service(request, slug)
 #
 #         # Получаем текущий рейтинг пользователя для указанного IP-адреса и поста,
 #         # если он существует в базе данных. В противном случае возвращает None
-#         existing_rating = service_rating.existing_rating
+#         rating = self.service_rating.existing_rating
 #
-#         # Сериализуем рейтинг для добавления/обновления
-#         rating_serializer = serializers.AddRatingSerializer(instance=existing_rating, data=request.data)
+#         rating_serializer = serializers.AddRatingSerializer(rating, data=request.data, context={'slug': slug})
 #
 #         if rating_serializer.is_valid():
-#
 #             # Обновляем рейтинг пользователя на основе выбранной оценки
-#             # и получаем соответствующее сообщение и статусный код для совершённого действия
-#             message, status_code = service_rating.update_author_rating_with_return_message_and_status_code()
+#             self.service_rating.update_author_rating()
 #
-#             rating_serializer.save(ip=ip)
-#
-#             return Response({'message': _(message)}, status=status_code)
+#             rating_serializer.save(ip=self.ip)
+#             return Response(
+#                 {'message': _(self.service_rating.get_message())},
+#                 status=self.service_rating.get_status_code()
+#             )
 #
 #         return Response(rating_serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 
-# class AddRatingView(generics.UpdateAPIView):
+# class GetAddRatingView(generics.RetrieveAPIView, mixins.UpdateModelMixin):
 #     """
-#     Добавление рейтинга к посту.
+#     Вывод и создание/обновление рейтинга пользователя к посту.
 #
-#     ВНИМАНИЕ: Данное представление реализует PUT as create.
-#     Если объект не найден, он будет автоматически создан при выполнении PUT-запроса.
+#     ВНИМАНИЕ: Представление реализует UPSERT подход.
+#     Если объект не найден, он будет автоматически создан при выполнении POST-запроса.
 #     """
 #
-#     serializer_class = serializers.AddRatingSerializer
+#     renderer_classes = [JSONRenderer, NoHTMLFormBrowsableAPIRenderer]
+#
+#     def setup_rating_service(self, request, *args, **kwargs):
+#         """Получение ip пользователя и создание объекта класса для работы с рейтингом"""
+#         self.kwargs['ip'] = get_client_ip(request)
+#         self.service_rating = ServiceUserRating(
+#             ip=self.kwargs['ip'],
+#             post_slug=kwargs['slug'],
+#             mark_id=request.data.get('mark'),
+#         )
+#
+#     def retrieve(self, request, *args, **kwargs):
+#         self.setup_rating_service(request, *args, **kwargs)
+#         return super().retrieve(self, request, *args, **kwargs)
+#
+#     def post(self, request, *args, **kwargs):
+#         self.setup_rating_service(request, *args, **kwargs)
+#         self.update(request, *args, **kwargs)
+#         return Response(
+#             {'message': _(self.service_rating.get_message())},
+#             status=self.service_rating.get_status_code()
+#         )
 #
 #     def get_object(self):
 #         # Получаем текущий рейтинг пользователя для указанного IP-адреса и поста,
 #         # если он существует в базе данных. В противном случае возвращает None
 #         return self.service_rating.existing_rating
 #
+#     def get_serializer_class(self):
+#         if self.request.method == 'GET':
+#             return serializers.RatingDetailSerializer
+#         elif self.request.method == 'POST':
+#             return serializers.AddRatingSerializer
+#
+#     def get_serializer_context(self):
+#         context = super().get_serializer_context()
+#         context['slug'] = self.kwargs['slug']
+#         return context
+#
 #     def perform_update(self, serializer):
-#         # Обновляем рейтинг пользователя на основе выбранной оценки
-#         # и получаем соответствующее сообщение и статусный код для совершённого действия
-#         self.message, self.status_code = \
-#             self.service_rating.update_author_rating_with_return_message_and_status_code()
+#         # Обновляем рейтинг автора на основе выбранной оценки
+#         self.service_rating.update_author_rating()
 #
 #         serializer.save(ip=self.kwargs['ip'])
-#
-#     def update(self, request, *args, **kwargs):
-#         # Получаем IP пользователя
-#         self.kwargs['ip'] = get_client_ip(request)
-#
-#         # Создаём объект класса для работы с рейтингом
-#         self.service_rating = ServiceUserRating(
-#             self.kwargs['ip'], post_id=request.data['post'], mark_id=request.data['mark']
-#         )
-#
-#         super().update(request, *args, **kwargs)
-#         return Response({'message': _(self.message)}, status=self.status_code)
 
 
-class RatingViewSet(mixins.UpdateModelMixin, viewsets.GenericViewSet):
+class RatingViewSet(mixins.RetrieveModelMixin, mixins.UpdateModelMixin, viewsets.GenericViewSet):
     """
-    Добавление рейтинга к посту.
+    Вьюсет для работы с рейтингом пользователя к посту.
 
-    ВНИМАНИЕ: Данное представление реализует PUT as create.
-    Если объект не найден, он будет автоматически создан при выполнении PUT-запроса.
+    Поддерживаемые действия:
+    - Вывод существующего рейтинга
+    - Создание/обновление рейтинга
+
+    ВНИМАНИЕ: Представление реализует UPSERT подход.
+    Если объект не найден, он будет автоматически создан при выполнении POST-запроса.
     """
 
-    serializer_class = serializers.AddRatingSerializer
+    renderer_classes = [JSONRenderer, NoHTMLFormBrowsableAPIRenderer]
+
+    def setup_rating_service(self, request, *args, **kwargs):
+        """Получение ip пользователя и создание объекта класса для работы с рейтингом"""
+        self.kwargs['ip'] = get_client_ip(request)
+        self.service_rating = ServiceUserRating(
+            ip=self.kwargs['ip'], post_slug=kwargs['slug'], mark_id=request.data.get('mark')
+        )
+
+    def retrieve(self, request, *args, **kwargs):
+        self.setup_rating_service(request, *args, **kwargs)
+        return super().retrieve(request, *args, **kwargs)
+
+    def create_or_update(self, request, *args, **kwargs):
+        self.setup_rating_service(request, *args, **kwargs)
+        super().update(request, *args, **kwargs)
+        return Response({'message': _(self.service_rating.get_message())}, status=self.service_rating.get_status_code())
 
     def get_object(self):
         # Получаем текущий рейтинг пользователя для указанного IP-адреса и поста,
         # если он существует в базе данных. В противном случае возвращает None
         return self.service_rating.existing_rating
 
+    def get_serializer_class(self):
+        if self.action == 'retrieve':
+            return serializers.RatingDetailSerializer
+        elif self.action == 'create_or_update':
+            return serializers.AddRatingSerializer
+
+    def get_serializer_context(self):
+        context = super().get_serializer_context()
+        context['slug'] = self.kwargs['slug']
+        return context
+
     def perform_update(self, serializer):
         # Обновляем рейтинг пользователя на основе выбранной оценки
-        # и получаем соответствующее сообщение и статусный код для совершённого действия
-        self.message, self.status_code = self.service_rating.update_author_rating_with_return_message_and_status_code()
+        self.service_rating.update_author_rating()
 
         serializer.save(ip=self.kwargs['ip'])
-
-    def update(self, request, *args, **kwargs):
-        # Получаем IP пользователя
-        self.kwargs['ip'] = get_client_ip(request)
-
-        # Создаём объект класса для работы с рейтингом
-        self.service_rating = ServiceUserRating(
-            self.kwargs['ip'], post_id=request.data['post'], mark_id=request.data['mark']
-        )
-
-        super().update(request, *args, **kwargs)
-        return Response({'message': _(self.message)}, status=self.status_code)
 
 
 class DaysInCalendarView(APIView):
@@ -459,8 +507,15 @@ class TagViewSet(mixins.ListModelMixin, viewsets.GenericViewSet):
         return caching.get_cached_objects_or_queryset(settings.KEY_ALL_TAGS)
 
 
-# class AddCommentView(APIView):
-#     """Добавление комментария к посту"""
+# class CommentListCreateView(APIView):
+#     """Получение списка комментариев и добавление нового комментария к заданному посту"""
+#
+#     def get(self, request: Request):
+#         post_id = request.query_params.get('post_id')
+#         validators.validate_post_id_param(post_id)
+#         comments = queryset.qs_definition(settings.KEY_COMMENTS_LIST, post_id=post_id)
+#         serializer = serializers.CommentsSerializer(comments, many=True)
+#         return Response(serializer.data)
 #
 #     def post(self, request: Request) -> Response:
 #         comment = serializers.AddCommentSerializer(data=request.data)
@@ -470,20 +525,44 @@ class TagViewSet(mixins.ListModelMixin, viewsets.GenericViewSet):
 #         return Response(comment.errors, status=status.HTTP_400_BAD_REQUEST)
 
 
-# class AddCommentView(generics.CreateAPIView):
-#     """Добавление комментария к посту"""
+# class CommentListCreateView(generics.ListCreateAPIView):
+#     """Получение списка комментариев и добавление нового комментария к заданному посту"""
 #
-#     serializer_class = serializers.AddCommentSerializer
+#     def get_serializer_class(self):
+#         if self.request.method == 'GET':
+#             return serializers.CommentsSerializer
+#         elif self.request.method == 'POST':
+#             return serializers.AddCommentSerializer
+#
+#     def get_queryset(self):
+#         return queryset.qs_definition(settings.KEY_COMMENTS_LIST, post_id=self.kwargs['post_id'])
+#
+#     def list(self, request, *args, **kwargs):
+#         self.kwargs['post_id'] = request.query_params.get('post_id')
+#         validators.validate_post_id_param(self.kwargs['post_id'])
+#         return super().list(request, *args, **kwargs)
 #
 #     def create(self, request, *args, **kwargs):
 #         super().create(request, *args, **kwargs)
 #         return Response({'message': _('Комментарий успешно добавлен.')}, status=status.HTTP_201_CREATED)
 
 
-class CommentViewSet(mixins.CreateModelMixin, viewsets.GenericViewSet):
-    """Добавление комментария к посту"""
+class CommentViewSet(mixins.ListModelMixin, mixins.CreateModelMixin, viewsets.GenericViewSet):
+    """Получение списка комментариев и добавление нового комментария к заданному посту"""
 
-    serializer_class = serializers.AddCommentSerializer
+    def get_serializer_class(self):
+        if self.action == 'list':
+            return serializers.CommentsSerializer
+        elif self.action == 'create':
+            return serializers.AddCommentSerializer
+
+    def get_queryset(self):
+        return queryset.qs_definition(settings.KEY_COMMENTS_LIST, post_id=self.kwargs['post_id'])
+
+    def list(self, request, *args, **kwargs):
+        self.kwargs['post_id'] = request.query_params.get('post_id')
+        validators.validate_post_id_param(self.kwargs['post_id'])
+        return super().list(request, *args, **kwargs)
 
     def create(self, request, *args, **kwargs):
         super().create(request, *args, **kwargs)
