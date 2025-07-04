@@ -236,13 +236,6 @@ MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
 SITE_ID = 1
 
 
-# Проверка наличия файла .env для первого запуска интерпретатора Python и генерации SECRET_KEY
-if os.path.isfile(os.path.join(os.path.dirname(os.path.dirname(__file__)), '.env')):
-    # Ключи для работы reCAPTCHA
-    RECAPTCHA_PUBLIC_KEY = os.getenv('ENV_RECAPTCHA_PUBLIC_KEY')
-    RECAPTCHA_PRIVATE_KEY = os.getenv('ENV_RECAPTCHA_PRIVATE_KEY')
-
-
 # Список IP-адресов для отдельных функций
 INTERNAL_IPS = [
     "127.0.0.1",
