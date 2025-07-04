@@ -89,6 +89,7 @@ INSTALLED_APPS = [
     'company',
     'common',
     'users',
+    'drf_spectacular',
 ]
 
 
@@ -168,6 +169,13 @@ AUTH_PASSWORD_VALIDATORS = [
         'NAME': 'django.contrib.auth.password_validation.NumericPasswordValidator',
     },
 ]
+
+
+# Основные настройки DRF
+REST_FRAMEWORK = {
+    # Класс схемы для генерации OpenAPI-документации
+    'DEFAULT_SCHEMA_CLASS': 'drf_spectacular.openapi.AutoSchema',
+}
 
 
 # Internationalization
@@ -427,3 +435,12 @@ PHONENUMBER_DEFAULT_REGION = 'RU'
 
 # Общая аннотация для объектов, наследуемых от базовой модели Django
 ObjectModel = TypeVar('ObjectModel', bound=Model)
+
+
+# Настройки генерации OpenAPI-схемы для drf-spectacular
+SPECTACULAR_SETTINGS = {
+    'TITLE': 'blog_by_me_DRF',
+    'DESCRIPTION': 'My blog.',
+    'VERSION': '0.0.1',
+    'SERVE_INCLUDE_SCHEMA': False,
+}
