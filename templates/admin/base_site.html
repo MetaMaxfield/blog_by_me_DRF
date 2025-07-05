@@ -1,0 +1,7 @@
+{% extends "admin/base_site.html" %}
+{% load static %}
+
+{% block branding %}
+<img src="{% static 'site_logo.png' %}" width="42.84" height="38.99" alt="logo">
+{{ block.super }}
+{% endblock %}
