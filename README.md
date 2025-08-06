@@ -10,7 +10,7 @@
 ![Static Badge](https://img.shields.io/badge/DRF-3.15-E5E5E5?logo=Django&labelColor=8B0000)
 ![Static Badge](https://img.shields.io/badge/PostgreSQL-%231f618d?logo=postgresql&logoColor=white)
 ![Static Badge](https://img.shields.io/badge/Docker-blue?logo=docker&logoColor=white)
-![Static Badge](https://img.shields.io/badge/Memcached-%2316a085)
+![Static Badge](https://img.shields.io/badge/Redis-%23A60000?logo=redis&logoColor=white)
 
 
 Веб-проект с реализованным backend API на Django REST Framework.
@@ -30,7 +30,7 @@
 - [Django 4.2.1](https://docs.djangoproject.com/en/4.2/)
 - [Django REST Framework 3.15.2](https://www.django-rest-framework.org/)
 - [PostgreSQL](https://www.postgresql.org/)
-- [Memcached](https://memcached.org/)
+- [Redis](https://redis.io/)
 - [SMTP Gmail](https://myaccount.google.com/apppasswords)
 - [Docker](https://www.docker.com/)
 
@@ -215,6 +215,8 @@
      EMAIL_HOST_PASSWORD_KEY=     # Пароль от приложения из Google аккаунта
      KEY_DATABASES_USER=          # Имя пользователя в PostgreSQL
      KEY_DATABASES_PASSWORD=      # Пароль пользователя в PostgreSQL
+     # Переменная окружения, значение которой определить самостоятельно
+     REDIS_PASSWORD=              # Пароль для подключения к Redis
      ```
      
 5. Проект готов к локальной разработке. Локальный сервер запущен автоматически.
